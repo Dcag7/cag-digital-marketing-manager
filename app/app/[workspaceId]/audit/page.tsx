@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDate } from '@/lib/utils';
+import { AuditLog } from '@prisma/client';
 
 export default async function AuditPage({
   params,
@@ -31,7 +32,7 @@ export default async function AuditPage({
             <p className="text-sm text-muted-foreground">No audit logs yet</p>
           ) : (
             <div className="space-y-2">
-              {auditLogs.map((log) => (
+              {auditLogs.map((log: AuditLog) => (
                 <div key={log.id} className="border rounded p-3 text-sm">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium">{log.action}</span>

@@ -13,6 +13,12 @@ import {
   LogOut
 } from 'lucide-react';
 
+interface Workspace {
+  id: string;
+  name: string;
+  role: string;
+}
+
 export default async function WorkspaceLayout({
   children,
   params,
@@ -83,9 +89,9 @@ export default async function WorkspaceLayout({
         {/* Top Bar */}
         <header className="h-16 border-b flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <select className="border rounded px-3 py-1">
-              {workspaces.map((ws) => (
-                <option key={ws.id} value={ws.id} selected={ws.id === workspaceId}>
+            <select className="border rounded px-3 py-1" defaultValue={workspaceId}>
+              {workspaces.map((ws: Workspace) => (
+                <option key={ws.id} value={ws.id}>
                   {ws.name}
                 </option>
               ))}

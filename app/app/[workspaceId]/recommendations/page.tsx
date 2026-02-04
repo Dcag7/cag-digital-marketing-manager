@@ -7,6 +7,13 @@ import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { generateRecommendation, proposeRecommendation } from '@/lib/agent/generator';
 import { RecommendationActions } from './recommendation-actions';
+import { Recommendation, ProposedAction, Diagnostic, CreativeBrief } from '@prisma/client';
+
+type RecommendationWithRelations = Recommendation & {
+  proposedActions: ProposedAction[];
+  diagnostics: Diagnostic[];
+  creativeBriefs: CreativeBrief[];
+};
 
 export default async function RecommendationsPage({
   params,
@@ -53,7 +60,7 @@ export default async function RecommendationsPage({
             </CardContent>
           </Card>
         ) : (
-          recommendations.map((rec) => (
+          recommendations.map((rec: RecommendationWithRelations) => (
             <Card key={rec.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -88,7 +95,7 @@ export default async function RecommendationsPage({
                   <div>
                     <h3 className="font-semibold mb-2">Diagnostics</h3>
                     <ul className="list-disc list-inside space-y-1 text-sm">
-                      {rec.diagnostics.map((d, i) => (
+                      {rec.diagnostics.map((d: Diagnostic, i: number) => (
                         <li key={i}>
                           <strong>{d.metric}:</strong> {d.finding}
                         </li>
@@ -103,10 +110,10 @@ export default async function RecommendationsPage({
                       Proposed Actions ({rec.proposedActions.length})
                     </h3>
                     <ul className="space-y-2">
-                      {rec.proposedActions.slice(0, 3).map((action) => (
+                      {rec.proposedActions.slice(0, 3).map((action: ProposedAction) => (
                         <li key={action.id} className="text-sm border-l-2 pl-2">
                           <strong>{action.type}</strong> on {action.channel}{' '}
-                          {action.entity.name && `(${action.entity.name})`}
+                          {(action.entity as { name?: string })?.name && `(${(action.entity as { name?: string }).name})`}
                           <p className="text-muted-foreground text-xs mt-1">
                             {action.rationale}
                           </p>
@@ -127,7 +134,7 @@ export default async function RecommendationsPage({
                       Creative Briefs ({rec.creativeBriefs.length})
                     </h3>
                     <ul className="space-y-2">
-                      {rec.creativeBriefs.map((brief) => (
+                      {rec.creativeBriefs.map((brief: CreativeBrief) => (
                         <li key={brief.id} className="text-sm">
                           <strong>{brief.title}</strong> - {brief.angle}
                         </li>

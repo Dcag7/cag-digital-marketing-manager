@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
+import { Task } from '@prisma/client';
 
 export default async function TasksPage({
   params,
@@ -19,7 +20,7 @@ export default async function TasksPage({
     take: 50,
   });
 
-  const thisWeek = tasks.filter(task => {
+  const thisWeek = tasks.filter((task: Task) => {
     if (!task.dueDate) return false;
     const due = new Date(task.dueDate);
     const now = new Date();
@@ -58,7 +59,7 @@ export default async function TasksPage({
             <p className="text-sm text-muted-foreground">No tasks due this week</p>
           ) : (
             <div className="space-y-2">
-              {thisWeek.map((task) => (
+              {thisWeek.map((task: Task) => (
                 <div key={task.id} className="flex items-center justify-between p-2 border rounded">
                   <div>
                     <div className="font-medium">{task.title}</div>
@@ -95,7 +96,7 @@ export default async function TasksPage({
             <p className="text-sm text-muted-foreground">No tasks yet</p>
           ) : (
             <div className="space-y-2">
-              {tasks.map((task) => (
+              {tasks.map((task: Task) => (
                 <div key={task.id} className="flex items-center justify-between p-2 border rounded">
                   <div>
                     <div className="font-medium">{task.title}</div>

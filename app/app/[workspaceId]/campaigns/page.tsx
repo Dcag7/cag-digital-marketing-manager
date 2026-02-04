@@ -1,17 +1,12 @@
 import { prisma } from '@/lib/db';
-import { checkWorkspaceAccess } from '@/server/actions/workspace';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatCurrency, formatNumber } from '@/lib/utils';
 
-export default async function CampaignsPage({
-  params,
-}: {
-  params: Promise<{ workspaceId: string }>;
-}) {
-  const { workspaceId } = await params;
+type MetaCampaignWithRelations = Awaited<ReturnType<typeof getMetaCampaigns>>[number];
+type GoogleCampaignWithRelations = Awaited<ReturnType<typeof getGoogleCampaigns>>[number];
 
-  const metaCampaigns = await prisma.metaCampaign.findMany({
+async function getMetaCampaigns(workspaceId: string) {
+  return prisma.metaCampaign.findMany({
     where: { workspaceId },
     include: {
       adSets: {
@@ -22,8 +17,10 @@ export default async function CampaignsPage({
     },
     orderBy: { createdAt: 'desc' },
   });
+}
 
-  const googleCampaigns = await prisma.googleCampaign.findMany({
+async function getGoogleCampaigns(workspaceId: string) {
+  return prisma.googleCampaign.findMany({
     where: { workspaceId },
     include: {
       adGroups: {
@@ -34,6 +31,17 @@ export default async function CampaignsPage({
     },
     orderBy: { createdAt: 'desc' },
   });
+}
+
+export default async function CampaignsPage({
+  params,
+}: {
+  params: Promise<{ workspaceId: string }>;
+}) {
+  const { workspaceId } = await params;
+
+  const metaCampaigns = await getMetaCampaigns(workspaceId);
+  const googleCampaigns = await getGoogleCampaigns(workspaceId);
 
   return (
     <div className="space-y-6">
@@ -56,7 +64,7 @@ export default async function CampaignsPage({
               </CardContent>
             </Card>
           ) : (
-            metaCampaigns.map((campaign) => (
+            metaCampaigns.map((campaign: MetaCampaignWithRelations) => (
               <Card key={campaign.id}>
                 <CardHeader>
                   <CardTitle>{campaign.name}</CardTitle>
@@ -66,7 +74,7 @@ export default async function CampaignsPage({
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">
-                    Ad Sets: {campaign.adSets.length} | Ads: {campaign.adSets.reduce((sum, as) => sum + as.ads.length, 0)}
+                    Ad Sets: {campaign.adSets.length} | Ads: {campaign.adSets.reduce((sum: number, as: MetaCampaignWithRelations['adSets'][number]) => sum + as.ads.length, 0)}
                   </p>
                 </CardContent>
               </Card>
@@ -82,7 +90,7 @@ export default async function CampaignsPage({
               </CardContent>
             </Card>
           ) : (
-            googleCampaigns.map((campaign) => (
+            googleCampaigns.map((campaign: GoogleCampaignWithRelations) => (
               <Card key={campaign.id}>
                 <CardHeader>
                   <CardTitle>{campaign.name}</CardTitle>
@@ -92,7 +100,7 @@ export default async function CampaignsPage({
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">
-                    Ad Groups: {campaign.adGroups.length} | Ads: {campaign.adGroups.reduce((sum, ag) => sum + ag.ads.length, 0)}
+                    Ad Groups: {campaign.adGroups.length} | Ads: {campaign.adGroups.reduce((sum: number, ag: GoogleCampaignWithRelations['adGroups'][number]) => sum + ag.ads.length, 0)}
                   </p>
                 </CardContent>
               </Card>

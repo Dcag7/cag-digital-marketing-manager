@@ -1,6 +1,12 @@
 import { redirect } from 'next/navigation';
 import { getUserWorkspaces } from '@/server/actions/workspace';
 
+interface Workspace {
+  id: string;
+  name: string;
+  role: string;
+}
+
 export default async function AppPage() {
   const workspaces = await getUserWorkspaces();
 
@@ -11,7 +17,7 @@ export default async function AppPage() {
         <div className="w-full max-w-md space-y-4">
           <h1 className="text-2xl font-bold text-center">Create Your First Workspace</h1>
           <p className="text-muted-foreground text-center">
-            A workspace represents a client or brand you'll manage.
+            A workspace represents a client or brand you&apos;ll manage.
           </p>
           {/* Workspace creation form will be added */}
         </div>
@@ -30,7 +36,7 @@ export default async function AppPage() {
       <div className="w-full max-w-2xl space-y-4">
         <h1 className="text-2xl font-bold text-center">Select Workspace</h1>
         <div className="grid gap-4">
-          {workspaces.map((workspace) => (
+          {workspaces.map((workspace: Workspace) => (
             <a
               key={workspace.id}
               href={`/app/${workspace.id}`}
