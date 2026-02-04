@@ -44,15 +44,23 @@ When setting up Clerk, you need to configure where users go for sign-in and sign
 3. Enter: `/sign-up`
 4. This tells Clerk to use your Next.js app's sign-up page at `/app/sign-up`
 
-### Step 4: Configure After Sign-In/Up Redirects
+### Step 4: Configure Application Paths (Optional)
 
-Look for settings like:
-- "After sign-in redirect"
-- "After sign-up redirect"
+In the "Paths" section, you'll see an "Application paths" subsection with:
 
-**What to do:**
-1. Set both to: `/app`
-2. This redirects users to your main application after they authenticate
+**Home URL:**
+- Leave this blank (your app's homepage is at the root `/`)
+- Or if your homepage is at a different path, enter it here
+
+**Unauthorized sign in URL:**
+- Leave this blank (uses default)
+- Or set to `/sign-in` if you want users redirected to sign-in when unauthorized
+
+**Note:** The "After sign-in" and "After sign-up" redirects are NOT in the Clerk dashboard. They're configured via environment variables in Vercel:
+- `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/app`
+- `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/app`
+
+These environment variables control where users go after successful authentication.
 
 ### Step 5: Sign-Out Configuration (Optional)
 

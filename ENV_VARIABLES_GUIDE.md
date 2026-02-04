@@ -99,10 +99,17 @@ This guide shows you exactly where to get each environment variable and how to o
 - You want to use YOUR app's pages instead, so select "development host" and use paths like `/sign-in` and `/sign-up`
 - These paths match the routes in your Next.js app (`/app/sign-in` and `/app/sign-up`)
 
-**Step 6:** Set After Sign-In/Up Redirects
-- Still in the "Paths" section, look for "After sign-in" and "After sign-up" settings
-- Set both to: `/app`
-- This redirects users to your main app after authentication
+**Step 6:** Configure Application Paths (Optional)
+
+In the "Paths" section, you'll see "Application paths" with:
+- **Home URL**: Leave this blank (your app's homepage is at the root)
+- **Unauthorized sign in URL**: Leave this blank or set to `/sign-in` if you want a custom unauthorized page
+
+**Note:** The "After sign-in" and "After sign-up" redirects are configured via environment variables, not in the Clerk dashboard. Set these in Vercel:
+- `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/app`
+- `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/app`
+
+These environment variables tell Clerk where to redirect users after authentication.
 
 ### Clerk URL Variables (Set these exact values):
 
