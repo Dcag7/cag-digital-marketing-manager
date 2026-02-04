@@ -75,13 +75,34 @@ This guide shows you exactly where to get each environment variable and how to o
 - **This is your `CLERK_SECRET_KEY`**
 - Copy the entire key
 
-**Step 5:** Set redirect URLs (optional, but recommended)
-- Go to **"Paths"** in sidebar
-- Set:
-  - Sign-in path: `/sign-in`
-  - Sign-up path: `/sign-up`
-  - After sign-in: `/app`
-  - After sign-up: `/app`
+**Step 5:** Configure Component Paths (Important!)
+
+- Go to **"Paths"** in the sidebar (or look for "Component paths" section)
+- You'll see three sections: `<SignIn />`, `<SignUp />`, and "Signing Out"
+
+**For `<SignIn />`:**
+1. Select the radio button: **"Sign-in page on development host"** (NOT "Account Portal")
+2. In the text field that appears, enter: `/sign-in`
+3. This tells Clerk to use your app's sign-in page, not Clerk's hosted page
+
+**For `<SignUp />`:**
+1. Select the radio button: **"Sign-up page on development host"** (NOT "Account Portal")
+2. In the text field that appears, enter: `/sign-up`
+3. This tells Clerk to use your app's sign-up page
+
+**For "Signing Out":**
+1. You can leave this as "Sign-in page on Account Portal" (default)
+2. Or select "Page on development host" and enter `/sign-in` if you want users redirected to your app
+
+**Important:** 
+- The prefilled URLs like `https://modern-sheepdog-64.accounts.dev/sign-in` are Clerk's hosted pages
+- You want to use YOUR app's pages instead, so select "development host" and use paths like `/sign-in` and `/sign-up`
+- These paths match the routes in your Next.js app (`/app/sign-in` and `/app/sign-up`)
+
+**Step 6:** Set After Sign-In/Up Redirects
+- Still in the "Paths" section, look for "After sign-in" and "After sign-up" settings
+- Set both to: `/app`
+- This redirects users to your main app after authentication
 
 ### Clerk URL Variables (Set these exact values):
 
