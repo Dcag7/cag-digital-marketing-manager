@@ -41,13 +41,13 @@ export default async function WorkspaceLayout({
   type WorkspaceType = typeof workspaces[number];
 
   const navItems = [
-    { href: `/app/${workspaceId}/overview`, label: 'Overview', icon: LayoutDashboard },
-    { href: `/app/${workspaceId}/campaigns`, label: 'Campaigns', icon: Megaphone },
-    { href: `/app/${workspaceId}/creative`, label: 'Creative', icon: Sparkles },
-    { href: `/app/${workspaceId}/recommendations`, label: 'Recommendations', icon: Lightbulb },
-    { href: `/app/${workspaceId}/tasks`, label: 'Tasks', icon: CheckSquare },
-    { href: `/app/${workspaceId}/audit`, label: 'Audit Log', icon: FileText },
-    { href: `/app/${workspaceId}/settings`, label: 'Settings', icon: Settings },
+    { href: `/app/${workspaceId}/overview`, label: 'Overview', icon: LayoutDashboard, color: 'text-blue-500' },
+    { href: `/app/${workspaceId}/campaigns`, label: 'Campaigns', icon: Megaphone, color: 'text-green-500' },
+    { href: `/app/${workspaceId}/creative`, label: 'Creative', icon: Sparkles, color: 'text-yellow-500' },
+    { href: `/app/${workspaceId}/recommendations`, label: 'Recommendations', icon: Lightbulb, color: 'text-purple-500' },
+    { href: `/app/${workspaceId}/tasks`, label: 'Tasks', icon: CheckSquare, color: 'text-orange-500' },
+    { href: `/app/${workspaceId}/audit`, label: 'Audit Log', icon: FileText, color: 'text-slate-500' },
+    { href: `/app/${workspaceId}/settings`, label: 'Settings', icon: Settings, color: 'text-slate-500' },
   ];
 
   return (
@@ -57,30 +57,30 @@ export default async function WorkspaceLayout({
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">G</span>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500 flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-lg">G</span>
             </div>
             <div>
-              <h1 className="font-semibold text-foreground">Growth OS</h1>
+              <h1 className="font-bold text-foreground tracking-tight">Growth OS</h1>
             </div>
           </div>
         </div>
 
         {/* Workspace Selector */}
         <div className="px-4 py-4">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-              <span className="text-primary font-semibold text-xs">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer group">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">
                 {currentWorkspace?.name?.charAt(0).toUpperCase() || 'W'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
+              <p className="text-sm font-semibold text-foreground truncate">
                 {currentWorkspace?.name || 'Workspace'}
               </p>
               <p className="text-xs text-muted-foreground">{member.role}</p>
             </div>
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </div>
         </div>
 
@@ -92,9 +92,9 @@ export default async function WorkspaceLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-secondary group"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-secondary group"
               >
-                <Icon className="w-4 h-4 group-hover:text-primary transition-colors" />
+                <Icon className={`w-5 h-5 ${item.color} transition-transform group-hover:scale-110`} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -105,9 +105,9 @@ export default async function WorkspaceLayout({
         <div className="p-4 border-t border-sidebar-border">
           <Link
             href="/app"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
           >
-            <ArrowLeftRight className="w-4 h-4" />
+            <ArrowLeftRight className="w-5 h-5" />
             <span>Switch Workspace</span>
           </Link>
         </div>
@@ -126,7 +126,7 @@ export default async function WorkspaceLayout({
               afterSignOutUrl="/sign-in"
               appearance={{
                 elements: {
-                  avatarBox: "w-8 h-8"
+                  avatarBox: "w-9 h-9"
                 }
               }}
             />

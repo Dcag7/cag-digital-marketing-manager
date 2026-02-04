@@ -4,62 +4,76 @@
 
 @layer base {
   :root {
-    /* Light theme - Clean and professional */
+    /* Light theme - Clean with colorful accents */
     --background: 0 0% 98%;
-    --foreground: 240 10% 10%;
+    --foreground: 0 0% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 10%;
+    --card-foreground: 0 0% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
-    --primary: 173 80% 40%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 10% 10%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
-    --accent: 173 80% 40%;
-    --accent-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 47 96% 53%;
+    --accent-foreground: 0 0% 9%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 173 80% 40%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 217 91% 60%;
     --radius: 0.75rem;
     
-    /* Sidebar specific */
-    --sidebar: 240 6% 97%;
-    --sidebar-foreground: 240 10% 10%;
-    --sidebar-border: 240 6% 92%;
-    --sidebar-accent: 173 80% 40%;
+    /* Sidebar */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 92%;
+    
+    /* Creative Colors */
+    --creative-red: 0 84% 60%;
+    --creative-yellow: 47 96% 53%;
+    --creative-blue: 217 91% 60%;
+    --creative-green: 142 71% 45%;
+    --creative-purple: 262 83% 58%;
+    --creative-orange: 25 95% 53%;
   }
 
   .dark {
-    /* Dark theme - Comet inspired */
-    --background: 240 10% 4%;
-    --foreground: 0 0% 95%;
-    --card: 240 10% 6%;
-    --card-foreground: 0 0% 95%;
-    --popover: 240 10% 6%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 173 80% 40%;
+    /* Dark theme - Deep with vibrant accents */
+    --background: 240 10% 6%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 6% 12%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 240 6% 12%;
+    --secondary: 240 6% 14%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 6% 14%;
     --muted-foreground: 240 5% 55%;
-    --accent: 173 80% 40%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 50%;
+    --accent: 47 96% 53%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 15%;
-    --input: 240 6% 15%;
-    --ring: 173 80% 40%;
+    --border: 240 6% 18%;
+    --input: 240 6% 18%;
+    --ring: 217 91% 60%;
     
-    /* Sidebar specific - darker */
-    --sidebar: 240 10% 3%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-border: 240 6% 10%;
-    --sidebar-accent: 173 80% 40%;
+    /* Sidebar - slightly different shade */
+    --sidebar: 240 10% 5%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-border: 240 6% 12%;
+    
+    /* Creative Colors - same vibrant colors work on dark */
+    --creative-red: 0 84% 60%;
+    --creative-yellow: 47 96% 53%;
+    --creative-blue: 217 91% 60%;
+    --creative-green: 142 71% 45%;
+    --creative-purple: 262 83% 58%;
+    --creative-orange: 25 95% 53%;
   }
 }
 
@@ -80,24 +94,46 @@
 }
 
 @layer components {
-  /* Glass morphism effect for cards */
+  /* Colorful gradient backgrounds */
+  .gradient-red { @apply bg-gradient-to-br from-red-500 to-rose-600; }
+  .gradient-yellow { @apply bg-gradient-to-br from-yellow-400 to-amber-500; }
+  .gradient-blue { @apply bg-gradient-to-br from-blue-500 to-indigo-600; }
+  .gradient-green { @apply bg-gradient-to-br from-green-500 to-emerald-600; }
+  .gradient-purple { @apply bg-gradient-to-br from-purple-500 to-violet-600; }
+  .gradient-orange { @apply bg-gradient-to-br from-orange-500 to-red-500; }
+  
+  /* Creative color classes */
+  .text-creative-red { color: hsl(var(--creative-red)); }
+  .text-creative-yellow { color: hsl(var(--creative-yellow)); }
+  .text-creative-blue { color: hsl(var(--creative-blue)); }
+  .text-creative-green { color: hsl(var(--creative-green)); }
+  .text-creative-purple { color: hsl(var(--creative-purple)); }
+  .text-creative-orange { color: hsl(var(--creative-orange)); }
+  
+  .bg-creative-red { background-color: hsl(var(--creative-red)); }
+  .bg-creative-yellow { background-color: hsl(var(--creative-yellow)); }
+  .bg-creative-blue { background-color: hsl(var(--creative-blue)); }
+  .bg-creative-green { background-color: hsl(var(--creative-green)); }
+  .bg-creative-purple { background-color: hsl(var(--creative-purple)); }
+  .bg-creative-orange { background-color: hsl(var(--creative-orange)); }
+  
+  /* Colorful border accents */
+  .border-accent-red { border-left: 3px solid hsl(var(--creative-red)); }
+  .border-accent-yellow { border-left: 3px solid hsl(var(--creative-yellow)); }
+  .border-accent-blue { border-left: 3px solid hsl(var(--creative-blue)); }
+  .border-accent-green { border-left: 3px solid hsl(var(--creative-green)); }
+  .border-accent-purple { border-left: 3px solid hsl(var(--creative-purple)); }
+  
+  /* Glass effect */
   .glass {
     @apply backdrop-blur-xl bg-card/80;
   }
   
-  /* Subtle glow effect */
-  .glow-sm {
-    box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.2);
-  }
-  
-  .glow-md {
-    box-shadow: 0 0 30px -5px hsl(var(--primary) / 0.3);
-  }
-  
-  /* Gradient text */
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary to-teal-400 bg-clip-text text-transparent;
-  }
+  /* Colorful glow effects */
+  .glow-red { box-shadow: 0 0 20px -5px hsl(var(--creative-red) / 0.4); }
+  .glow-yellow { box-shadow: 0 0 20px -5px hsl(var(--creative-yellow) / 0.4); }
+  .glow-blue { box-shadow: 0 0 20px -5px hsl(var(--creative-blue) / 0.4); }
+  .glow-green { box-shadow: 0 0 20px -5px hsl(var(--creative-green) / 0.4); }
   
   /* Sidebar nav item styles */
   .nav-item {
@@ -107,11 +143,6 @@
   
   .nav-item-active {
     @apply text-foreground bg-secondary;
-  }
-  
-  .nav-item-active::before {
-    content: '';
-    @apply absolute left-0 w-1 h-6 rounded-r-full bg-primary;
   }
   
   /* Custom scrollbar */
@@ -131,6 +162,22 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/50;
   }
+  
+  /* Colorful card variants */
+  .card-colorful {
+    @apply relative overflow-hidden;
+  }
+  
+  .card-colorful::before {
+    content: '';
+    @apply absolute top-0 left-0 w-full h-1;
+  }
+  
+  .card-colorful-red::before { @apply bg-gradient-to-r from-red-500 to-rose-500; }
+  .card-colorful-yellow::before { @apply bg-gradient-to-r from-yellow-400 to-amber-500; }
+  .card-colorful-blue::before { @apply bg-gradient-to-r from-blue-500 to-indigo-500; }
+  .card-colorful-green::before { @apply bg-gradient-to-r from-green-500 to-emerald-500; }
+  .card-colorful-purple::before { @apply bg-gradient-to-r from-purple-500 to-violet-500; }
 }
 
 @layer utilities {
@@ -156,4 +203,19 @@
   .stagger-3 { animation-delay: 0.15s; }
   .stagger-4 { animation-delay: 0.2s; }
   .stagger-5 { animation-delay: 0.25s; }
+  
+  /* Fun hover effects */
+  .hover-lift {
+    @apply transition-transform duration-200;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+  
+  .hover-scale {
+    @apply transition-transform duration-200;
+  }
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
 }

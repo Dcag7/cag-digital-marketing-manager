@@ -12,14 +12,16 @@ export default async function AppPage() {
 
   if (workspaces.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        {/* Subtle gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
+        {/* Colorful gradient orbs */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute top-1/2 right-0 w-96 h-96 bg-yellow-500/20 rounded-full blur-3xl translate-x-1/2" />
+        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-red-500/20 rounded-full blur-3xl translate-y-1/2" />
         
-        <Card className="w-full max-w-md relative">
+        <Card className="w-full max-w-md relative backdrop-blur-sm bg-card/95">
           <CardHeader className="text-center pb-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-xl">G</span>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <span className="text-white font-bold text-2xl">G</span>
             </div>
             <CardTitle className="text-2xl">Welcome to Growth OS</CardTitle>
             <CardDescription className="text-base">
@@ -56,7 +58,7 @@ export default async function AppPage() {
                   This is the name of the brand or client you&apos;ll be managing.
                 </p>
               </div>
-              <Button type="submit" className="w-full h-11">
+              <Button type="submit" className="w-full h-11 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
                 Create Workspace
               </Button>
             </form>
@@ -71,41 +73,55 @@ export default async function AppPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
+      {/* Colorful gradient orbs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute top-1/2 right-0 w-96 h-96 bg-yellow-500/20 rounded-full blur-3xl translate-x-1/2" />
+      <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-red-500/20 rounded-full blur-3xl translate-y-1/2" />
       
-      <Card className="w-full max-w-2xl relative">
+      <Card className="w-full max-w-2xl relative backdrop-blur-sm bg-card/95">
         <CardHeader className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">G</span>
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <span className="text-white font-bold text-2xl">G</span>
           </div>
           <CardTitle className="text-2xl">Select Workspace</CardTitle>
           <CardDescription>Choose a workspace to continue</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3">
-            {workspaces.map((workspace: WorkspaceType) => (
-              <a
-                key={workspace.id}
-                href={`/app/${workspace.id}/overview`}
-                className="flex items-center gap-4 p-4 rounded-lg border border-border bg-card hover:bg-secondary/50 hover:border-primary/30 transition-all duration-200 group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/20 transition-colors">
-                  <span className="text-primary font-semibold">
-                    {workspace.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold">{workspace.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Role: {workspace.role}
+            {workspaces.map((workspace: WorkspaceType, index: number) => {
+              const colors = [
+                'from-blue-500 to-indigo-600',
+                'from-green-500 to-emerald-600',
+                'from-yellow-400 to-orange-500',
+                'from-red-500 to-rose-600',
+                'from-purple-500 to-violet-600',
+              ];
+              const colorClass = colors[index % colors.length];
+              
+              return (
+                <a
+                  key={workspace.id}
+                  href={`/app/${workspace.id}/overview`}
+                  className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 hover:border-primary/30 transition-all duration-200 group hover-lift"
+                >
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClass} flex items-center justify-center shadow-md`}>
+                    <span className="text-white font-bold text-lg">
+                      {workspace.name.charAt(0).toUpperCase()}
+                    </span>
                   </div>
-                </div>
-                <div className="text-muted-foreground group-hover:text-foreground transition-colors">
-                  →
-                </div>
-              </a>
-            ))}
+                  <div className="flex-1">
+                    <div className="font-semibold text-lg">{workspace.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Role: {workspace.role}
+                    </div>
+                  </div>
+                  <div className="text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all">
+                    →
+                  </div>
+                </a>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
