@@ -19,22 +19,30 @@ This guide shows you exactly where to get each environment variable and how to o
 - Click "Create Project"
 
 **Step 4:** Get connection strings
-- In your project dashboard, look for "Connection Details" or "Connection string"
-- You'll see two options:
+- In the "Connect to your database" modal, you'll see a toggle switch for **"Connection pooling"**
+- You need to get TWO connection strings by toggling this switch:
 
 **Pooled Connection** (for `DATABASE_URL`):
-- Click "Pooled connection" tab
-- Copy the connection string
-- It should look like: `postgresql://user:pass@ep-xxx.region.aws.neon.tech/dbname?pgbouncer=true&sslmode=require`
-- **This is your `DATABASE_URL`**
+1. Make sure **"Connection pooling"** toggle is **ON** (green/enabled)
+2. The connection string will show a hostname with `-pooler` in it
+3. Example: `postgresql://neondb_owner:pass@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require`
+4. Click **"Show password"** to reveal the full password
+5. Click **"Copy snippet"** to copy the full connection string
+6. **This is your `DATABASE_URL`**
 
 **Direct Connection** (for `DIRECT_URL`):
-- Click "Direct connection" tab
-- Copy the connection string
-- It should look like: `postgresql://user:pass@ep-xxx.region.aws.neon.tech/dbname?sslmode=require`
-- **This is your `DIRECT_URL`**
+1. Toggle **"Connection pooling"** to **OFF** (grey/disabled)
+2. The connection string will show a hostname WITHOUT `-pooler` in it
+3. Example: `postgresql://neondb_owner:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=require`
+4. Click **"Show password"** to reveal the full password
+5. Click **"Copy snippet"** to copy the full connection string
+6. **This is your `DIRECT_URL`**
 
-**Note:** Make sure `DATABASE_URL` has `pgbouncer=true` and `DIRECT_URL` does NOT have it.
+**Key Differences:**
+- **Pooled** (DATABASE_URL): Hostname contains `-pooler` (e.g., `ep-xxx-pooler.region.aws.neon.tech`)
+- **Direct** (DIRECT_URL): Hostname does NOT contain `-pooler` (e.g., `ep-xxx.region.aws.neon.tech`)
+
+**Note:** Both will have the same password. Make sure to copy the FULL connection string including the password.
 
 ---
 
