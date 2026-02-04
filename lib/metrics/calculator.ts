@@ -117,11 +117,11 @@ export async function calculateWorkspaceMetrics(
   const metaCtr = metaInsights._avg.ctr || 0;
   const metaFrequency = metaInsights._avg.frequency || 0;
 
-  const googleSpend = (googleCostMicros._sum.costMicros?.toNumber() || 0) / 1_000_000;
+  const googleSpend = Number(googleCostMicros._sum.costMicros || 0) / 1_000_000;
   const googleImpressions = googleInsights._sum.impressions || 0;
   const googleClicks = googleInsights._sum.clicks || 0;
-  const googleConversions = googleInsights._sum.conversions?.toNumber() || 0;
-  const googleConversionValue = googleInsights._sum.conversionValue?.toNumber() || 0;
+  const googleConversions = googleInsights._sum.conversions || 0;
+  const googleConversionValue = googleInsights._sum.conversionValue || 0;
   const googleCtr = googleInsights._avg.ctr || 0;
 
   const totalRevenue = shopifyRevenue._sum.totalPrice || 0;

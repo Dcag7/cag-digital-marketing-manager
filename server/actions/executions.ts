@@ -43,15 +43,22 @@ export async function runExecution(
 
   for (const action of actions) {
     try {
+      // Parse entity from JSON
+      const entity = action.entity as { level: string; id: string; name?: string } | null;
+      if (!entity) {
+        results.push({ actionId: action.id, success: false, error: 'Invalid entity data' });
+        continue;
+      }
+
       // Get before state
       let beforeState: unknown = null;
       if (action.channel === 'META') {
-        if (action.entity.level === 'adset') {
+        if (entity.level === 'adset') {
           const adSet = await prisma.metaAdSet.findUnique({
             where: {
               workspaceId_adSetId: {
                 workspaceId,
-                adSetId: action.entity.id as string,
+                adSetId: entity.id,
               },
             },
           });
@@ -65,7 +72,7 @@ export async function runExecution(
         {
           channel: action.channel,
           type: action.type,
-          entity: action.entity as { level: string; id: string; name?: string },
+          entity,
           beforeState,
         }
       );
@@ -77,7 +84,7 @@ export async function runExecution(
           proposedActionId: action.id,
           channel: action.channel,
           type: action.type,
-          entity: action.entity,
+          entity: entity as object,
           beforeState: beforeState as object,
           afterState: result.afterState as object,
           status: result.success ? 'EXECUTED' : 'FAILED',
@@ -93,8 +100,8 @@ export async function runExecution(
           userId,
           action: `EXECUTE_${action.type}`,
           channel: action.channel,
-          entityType: action.entity.level,
-          entityId: action.entity.id as string,
+          entityType: entity.level,
+          entityId: entity.id,
           beforeState: beforeState as object,
           afterState: result.afterState as object,
           reason: action.rationale,

@@ -7,13 +7,6 @@ import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { generateRecommendation, proposeRecommendation } from '@/lib/agent/generator';
 import { RecommendationActions } from './recommendation-actions';
-import { Recommendation, ProposedAction, Diagnostic, CreativeBrief } from '@prisma/client';
-
-type RecommendationWithRelations = Recommendation & {
-  proposedActions: ProposedAction[];
-  diagnostics: Diagnostic[];
-  creativeBriefs: CreativeBrief[];
-};
 
 export default async function RecommendationsPage({
   params,
@@ -33,6 +26,11 @@ export default async function RecommendationsPage({
     orderBy: { createdAt: 'desc' },
     take: 20,
   });
+
+  type RecommendationType = typeof recommendations[number];
+  type ProposedActionType = RecommendationType['proposedActions'][number];
+  type DiagnosticType = RecommendationType['diagnostics'][number];
+  type CreativeBriefType = RecommendationType['creativeBriefs'][number];
 
   return (
     <div className="space-y-6">
@@ -60,7 +58,7 @@ export default async function RecommendationsPage({
             </CardContent>
           </Card>
         ) : (
-          recommendations.map((rec: RecommendationWithRelations) => (
+          recommendations.map((rec: RecommendationType) => (
             <Card key={rec.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -95,7 +93,7 @@ export default async function RecommendationsPage({
                   <div>
                     <h3 className="font-semibold mb-2">Diagnostics</h3>
                     <ul className="list-disc list-inside space-y-1 text-sm">
-                      {rec.diagnostics.map((d: Diagnostic, i: number) => (
+                      {rec.diagnostics.map((d: DiagnosticType, i: number) => (
                         <li key={i}>
                           <strong>{d.metric}:</strong> {d.finding}
                         </li>
@@ -110,15 +108,18 @@ export default async function RecommendationsPage({
                       Proposed Actions ({rec.proposedActions.length})
                     </h3>
                     <ul className="space-y-2">
-                      {rec.proposedActions.slice(0, 3).map((action: ProposedAction) => (
-                        <li key={action.id} className="text-sm border-l-2 pl-2">
-                          <strong>{action.type}</strong> on {action.channel}{' '}
-                          {(action.entity as { name?: string })?.name && `(${(action.entity as { name?: string }).name})`}
-                          <p className="text-muted-foreground text-xs mt-1">
-                            {action.rationale}
-                          </p>
-                        </li>
-                      ))}
+                      {rec.proposedActions.slice(0, 3).map((action: ProposedActionType) => {
+                        const entityName = (action.entity as Record<string, unknown>)?.name as string | undefined;
+                        return (
+                          <li key={action.id} className="text-sm border-l-2 pl-2">
+                            <strong>{action.type}</strong> on {action.channel}{' '}
+                            {entityName && `(${entityName})`}
+                            <p className="text-muted-foreground text-xs mt-1">
+                              {action.rationale}
+                            </p>
+                          </li>
+                        );
+                      })}
                       {rec.proposedActions.length > 3 && (
                         <li className="text-sm text-muted-foreground">
                           +{rec.proposedActions.length - 3} more actions
@@ -134,7 +135,7 @@ export default async function RecommendationsPage({
                       Creative Briefs ({rec.creativeBriefs.length})
                     </h3>
                     <ul className="space-y-2">
-                      {rec.creativeBriefs.map((brief: CreativeBrief) => (
+                      {rec.creativeBriefs.map((brief: CreativeBriefType) => (
                         <li key={brief.id} className="text-sm">
                           <strong>{brief.title}</strong> - {brief.angle}
                         </li>

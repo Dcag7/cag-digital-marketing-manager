@@ -13,12 +13,6 @@ import {
   LogOut
 } from 'lucide-react';
 
-interface Workspace {
-  id: string;
-  name: string;
-  role: string;
-}
-
 export default async function WorkspaceLayout({
   children,
   params,
@@ -39,6 +33,8 @@ export default async function WorkspaceLayout({
   }
 
   const workspaces = await getUserWorkspaces();
+
+  type WorkspaceType = typeof workspaces[number];
 
   const navItems = [
     { href: `/app/${workspaceId}/overview`, label: 'Overview', icon: LayoutDashboard },
@@ -90,7 +86,7 @@ export default async function WorkspaceLayout({
         <header className="h-16 border-b flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <select className="border rounded px-3 py-1" defaultValue={workspaceId}>
-              {workspaces.map((ws: Workspace) => (
+              {workspaces.map((ws: WorkspaceType) => (
                 <option key={ws.id} value={ws.id}>
                   {ws.name}
                 </option>

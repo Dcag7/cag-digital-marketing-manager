@@ -92,12 +92,12 @@ export async function updateIntegrationStatus(
       type: integrationType,
       status,
       connectedAt: status === 'CONNECTED' ? new Date() : null,
-      metadata: metadata || null,
+      metadata: metadata ?? undefined,
     },
     update: {
       status,
       connectedAt: status === 'CONNECTED' ? new Date() : null,
-      metadata: metadata || null,
+      metadata: metadata ?? undefined,
     },
   });
 

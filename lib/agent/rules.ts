@@ -109,9 +109,9 @@ export async function analyzeEntityPerformance(
       },
     });
 
-    const spend = (insights._sum.costMicros?.toNumber() || 0) / 1_000_000;
-    const revenue = insights._sum.conversionValue?.toNumber() || 0;
-    const conversions = insights._sum.conversions?.toNumber() || 0;
+    const spend = Number(insights._sum.costMicros || 0) / 1_000_000;
+    const revenue = insights._sum.conversionValue || 0;
+    const conversions = insights._sum.conversions || 0;
 
     if (spend > 0) {
       results.push({
@@ -142,17 +142,22 @@ export async function applyRules(
     where: { workspaceId },
   });
 
+  const guardrails = await prisma.workspaceGuardrails.findUnique({
+    where: { workspaceId },
+  });
+
   if (!businessProfile) {
     throw new Error('Business profile not configured');
   }
 
+  const minSpendZar = guardrails?.minSpendZar ?? 100;
   const results: RuleResult[] = [];
 
   for (const entity of entities) {
     // Rule 1: ROAS below break-even OR CPA above target -> reduce or pause
     if (entity.roas < businessProfile.breakEvenRoas || entity.cpa > businessProfile.targetCpaZar) {
       // If spend is very low and no purchases, pause
-      if (entity.spend < businessProfile.minSpendZar && entity.purchases === 0) {
+      if (entity.spend < minSpendZar && entity.purchases === 0) {
         results.push({
           action: 'PAUSE',
           entity,
@@ -170,7 +175,7 @@ export async function applyRules(
     }
 
     // Rule 2: High spend with zero purchases -> pause
-    if (entity.spend >= businessProfile.minSpendZar && entity.purchases === 0) {
+    if (entity.spend >= minSpendZar && entity.purchases === 0) {
       results.push({
         action: 'PAUSE',
         entity,

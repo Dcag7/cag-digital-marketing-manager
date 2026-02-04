@@ -241,9 +241,14 @@ model MetaInsightDaily {
   purchaseRoas    Float?
   createdAt       DateTime @default(now())
 
-  campaign        MetaCampaign? @relation(fields: [workspaceId, entityId], references: [workspaceId, campaignId])
-  adSet           MetaAdSet? @relation(fields: [workspaceId, entityId], references: [workspaceId, adSetId])
-  ad              MetaAd? @relation(fields: [workspaceId, entityId], references: [workspaceId, adId])
+  // Relations use separate foreign key fields to avoid constraint name conflicts
+  campaignId      String?
+  adSetId         String?
+  adId            String?
+  
+  campaign        MetaCampaign? @relation(fields: [workspaceId, campaignId], references: [workspaceId, campaignId], map: "MetaInsightDaily_campaign_fkey")
+  adSet           MetaAdSet? @relation(fields: [workspaceId, adSetId], references: [workspaceId, adSetId], map: "MetaInsightDaily_adSet_fkey")
+  ad              MetaAd? @relation(fields: [workspaceId, adId], references: [workspaceId, adId], map: "MetaInsightDaily_ad_fkey")
 
   @@unique([workspaceId, date, level, entityId])
   @@index([workspaceId, date])
@@ -439,9 +444,14 @@ model GoogleInsightDaily {
   currencyCode    String?
   createdAt       DateTime @default(now())
 
-  campaign        GoogleCampaign? @relation(fields: [workspaceId, entityId], references: [workspaceId, campaignId])
-  adGroup         GoogleAdGroup? @relation(fields: [workspaceId, entityId], references: [workspaceId, adGroupId])
-  ad              GoogleAd? @relation(fields: [workspaceId, entityId], references: [workspaceId, adId])
+  // Relations use separate foreign key fields to avoid constraint name conflicts
+  campaignId      String?
+  adGroupId       String?
+  adId            String?
+
+  campaign        GoogleCampaign? @relation(fields: [workspaceId, campaignId], references: [workspaceId, campaignId], map: "GoogleInsightDaily_campaign_fkey")
+  adGroup         GoogleAdGroup? @relation(fields: [workspaceId, adGroupId], references: [workspaceId, adGroupId], map: "GoogleInsightDaily_adGroup_fkey")
+  ad              GoogleAd? @relation(fields: [workspaceId, adId], references: [workspaceId, adId], map: "GoogleInsightDaily_ad_fkey")
 
   @@unique([workspaceId, date, level, entityId])
   @@index([workspaceId, date])

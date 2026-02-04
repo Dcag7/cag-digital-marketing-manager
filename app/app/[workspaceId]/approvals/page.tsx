@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/db';
 import { checkWorkspaceAccess } from '@/server/actions/workspace';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
 import { ExecutionActions } from './execution-actions';
@@ -29,6 +28,9 @@ export default async function ApprovalsPage({
     orderBy: { updatedAt: 'desc' },
   });
 
+  type RecommendationType = typeof recommendations[number];
+  type ProposedActionType = RecommendationType['proposedActions'][number];
+
   return (
     <div className="space-y-6">
       <div>
@@ -44,7 +46,7 @@ export default async function ApprovalsPage({
             </CardContent>
           </Card>
         ) : (
-          recommendations.map((rec: typeof recommendations[number]) => (
+          recommendations.map((rec: RecommendationType) => (
             <Card key={rec.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -59,21 +61,24 @@ export default async function ApprovalsPage({
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 mb-4">
-                  {rec.proposedActions.map((action: typeof rec.proposedActions[number]) => (
-                    <div key={action.id} className="text-sm border-l-2 pl-2">
-                      <strong>{action.type}</strong> on {action.channel}{' '}
-                      {(action.entity as { name?: string }).name && `(${(action.entity as { name?: string }).name})`}
-                      <p className="text-muted-foreground text-xs mt-1">
-                        {action.rationale}
-                      </p>
-                    </div>
-                  ))}
+                    {rec.proposedActions.map((action: ProposedActionType) => {
+                      const entityName = (action.entity as Record<string, unknown>)?.name as string | undefined;
+                      return (
+                        <div key={action.id} className="text-sm border-l-2 pl-2">
+                          <strong>{action.type}</strong> on {action.channel}{' '}
+                          {entityName && `(${entityName})`}
+                          <p className="text-muted-foreground text-xs mt-1">
+                            {action.rationale}
+                          </p>
+                        </div>
+                      );
+                    })}
                 </div>
                 {hasAccess && rec.proposedActions.length > 0 && (
                   <ExecutionActions
                     recommendationId={rec.id}
                     workspaceId={workspaceId}
-                    actionIds={rec.proposedActions.map((a: typeof rec.proposedActions[number]) => a.id)}
+                    actionIds={rec.proposedActions.map((a: ProposedActionType) => a.id)}
                   />
                 )}
               </CardContent>
