@@ -194,35 +194,46 @@ node scripts/generate-secrets.js
 
 **Step 1:** Go to https://partners.shopify.com
 
-**Step 2:** Sign in or create a Partner account (free)
+**Step 2:** Sign in to your Partner account
 
-**Step 3:** Create a new app
-- Click "Apps" in sidebar
-- Click "Create app"
-- Choose "Custom app"
-- Fill in:
-  - App name: "Growth OS"
-  - App URL: (leave blank for now, or use your Vercel URL)
-- Click "Create app"
+**Step 3:** Access Your App
+- You should see your app in the dev dashboard (e.g., "CSW Growth OS")
+- If you don't have an app yet:
+  - Click "Apps" in sidebar
+  - Click "Create app"
+  - Choose "Custom app"
+  - Fill in:
+    - App name: "Growth OS" (or your preferred name)
+    - App URL: (leave blank for now, or use your Vercel URL)
+  - Click "Create app"
 
-**Step 4:** Configure app scopes
-- In your app, go to **"Configuration"**
-- Under "Admin API integration scopes", select:
+**Step 4:** Get API Credentials (This is what you need!)
+- Click on your app name in the sidebar (e.g., "CSW Growth OS")
+- Click **"Settings"** in the sidebar (under your app)
+- You'll see the **"Credentials"** section at the top
+- You'll see:
+  - **Client ID** - This is your `SHOPIFY_API_KEY`
+    - Copy this value (it's visible, e.g., `b7fe3381efe563b92410ddd8005901c7`)
+  - **Secret** - This is your `SHOPIFY_API_SECRET`
+    - Click the **eye icon** (👁️) to reveal it
+    - Or click **"Show"** if that option appears
+    - Copy this value immediately
+
+**Step 5:** Configure App Scopes (If needed)
+- Go to **"Versions"** in the sidebar
+- Click on your active version (e.g., "csw-growth-os")
+- Look for **"Scopes"** or **"Configuration"** section
+- Make sure these scopes are selected:
   - `read_orders`
   - `read_products`
   - `read_customers` (optional)
-- Click "Save"
+- If you need to add scopes, you may need to create a new version
 
-**Step 5:** Get API credentials
-- Go to **"API credentials"** tab
-- You'll see:
-  - **API Key** - This is your `SHOPIFY_API_KEY`
-  - **API Secret Key** - Click "Reveal" - This is your `SHOPIFY_API_SECRET`
-
-**Step 6:** Set redirect URL (after you have Vercel URL)
-- In "App setup" → "Allowed redirection URL(s)"
+**Step 6:** Set Redirect URL (After you have Vercel URL)
+- Go to **"Settings"** → Look for **"App setup"** or **"Configuration"**
+- Find **"Allowed redirection URL(s)"** or **"Redirect URLs"**
 - Add: `https://your-project.vercel.app/api/integrations/shopify/callback`
-- (Do this after deployment)
+- (Do this after deployment to Vercel)
 
 ---
 
