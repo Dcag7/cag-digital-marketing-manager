@@ -71,7 +71,20 @@ DEFAULT_CURRENCY
 
 Before adding `ENCRYPTION_KEY` and `CRON_SECRET`, generate them:
 
-```bash
+**On Windows PowerShell (choose one method):**
+
+**Method 1: Direct Node.js (Recommended)**
+```powershell
+node scripts/generate-secrets.js
+```
+
+**Method 2: PowerShell script**
+```powershell
+.\scripts\generate-secrets.ps1
+```
+
+**Method 3: Using npm**
+```powershell
 npm run secrets:generate
 ```
 
@@ -94,15 +107,16 @@ After first deployment:
    - Find `DIRECT_URL` and copy its value
 
 2. **Run migration locally**:
-   ```bash
-   # On Windows PowerShell:
-   $env:DATABASE_URL="<paste-your-direct-url-here>"
-   npm run migrate:deploy
+
+   **Option 1: Using helper script (Easiest)**
+   ```powershell
+   node scripts/run-migration.js "<paste-your-direct-url-here>"
    ```
 
-   Or use the helper script:
-   ```bash
-   node scripts/run-migration.js "<paste-direct-url-here>"
+   **Option 2: Using environment variable**
+   ```powershell
+   $env:DATABASE_URL="<paste-your-direct-url-here>"
+   npm run migrate:deploy
    ```
 
 ## Step 6: Update OAuth Redirect URLs
