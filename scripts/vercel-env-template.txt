@@ -1,0 +1,57 @@
+# Vercel Environment Variables Template
+# Copy these values and add them in Vercel Dashboard → Settings → Environment Variables
+# Or use: vercel env add <NAME>
+
+# ============================================
+# DATABASE (Get from Neon Dashboard)
+# ============================================
+DATABASE_URL=postgresql://user:pass@ep-xxx.region.aws.neon.tech/dbname?pgbouncer=true&connect_timeout=15
+DIRECT_URL=postgresql://user:pass@ep-xxx.region.aws.neon.tech/dbname?connect_timeout=15
+
+# ============================================
+# CLERK AUTHENTICATION (Get from Clerk Dashboard)
+# ============================================
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_... or pk_test_...
+CLERK_SECRET_KEY=sk_live_... or sk_test_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/app
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/app
+
+# ============================================
+# ENCRYPTION (Generate with: npm run secrets:generate)
+# ============================================
+ENCRYPTION_KEY=your-32-byte-base64-key-here
+CRON_SECRET=your-random-hex-secret-here
+
+# ============================================
+# META MARKETING API (Get from Facebook Developers)
+# ============================================
+META_APP_ID=your_app_id
+META_APP_SECRET=your_app_secret
+
+# ============================================
+# SHOPIFY (Get from Shopify Partners)
+# ============================================
+SHOPIFY_API_KEY=your_api_key
+SHOPIFY_API_SECRET=your_api_secret
+
+# ============================================
+# GOOGLE ADS (Get from Google Cloud Console)
+# ============================================
+GOOGLE_CLIENT_ID=your_client_id
+GOOGLE_CLIENT_SECRET=your_client_secret
+GOOGLE_ADS_DEVELOPER_TOKEN=your_developer_token
+
+# ============================================
+# LLM CONFIGURATION (OpenAI or compatible)
+# ============================================
+LLM_API_KEY=your_api_key
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini
+
+# ============================================
+# TIMEZONE & CURRENCY
+# ============================================
+TZ=Africa/Johannesburg
+DEFAULT_CURRENCY=ZAR
