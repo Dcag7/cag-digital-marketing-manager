@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/meta",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/shopify",
+      "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/cron/google",
+      "schedule": "0 1 * * *"
+    }
+  ],
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs"
+}
