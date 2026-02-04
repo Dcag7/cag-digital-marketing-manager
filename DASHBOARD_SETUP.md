@@ -56,6 +56,8 @@ TZ
 DEFAULT_CURRENCY
 ```
 
+**📖 Don't know where to get these?** See **[ENV_VARIABLES_GUIDE.md](./ENV_VARIABLES_GUIDE.md)** for detailed step-by-step instructions on where to get each variable!
+
 ### For Each Variable:
 
 1. **Name**: Enter the variable name (e.g., `DATABASE_URL`)
