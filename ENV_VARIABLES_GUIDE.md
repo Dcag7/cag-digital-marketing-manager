@@ -159,18 +159,28 @@ node scripts/generate-secrets.js
   - App Contact Email: Your email
 - Click "Create App"
 
-**Step 4:** Add Marketing API product
-- In your app dashboard, find "Add Products to Your App"
-- Click "Set Up" on **"Marketing API"**
-- Follow the setup wizard
+**Step 4:** Select Use Cases
+- You'll be taken to the "Add use cases" page
+- **IMPORTANT:** Check the box for **"Create & manage ads with Marketing API"**
+  - This is the first option in the "Featured" section
+  - Description: "Create, manage and optimize ad campaigns across Meta technologies..."
+- You can also select other use cases if needed, but this one is required
+- Click **"Next"** to continue
 
-**Step 5:** Get your App ID and Secret
+**Step 5:** Complete App Setup
+- Follow the remaining setup steps:
+  - Business information (if prompted)
+  - Requirements review
+  - Overview
+- Complete the wizard
+
+**Step 6:** Get your App ID and Secret
 - Go to **Settings** → **Basic** in the left sidebar
 - You'll see:
   - **App ID** - This is your `META_APP_ID`
   - **App Secret** - Click "Show" to reveal it - This is your `META_APP_SECRET`
 
-**Step 6:** Set up OAuth redirect (after you have Vercel URL)
+**Step 7:** Set up OAuth redirect (after you have Vercel URL)
 - Still in Settings → Basic
 - Scroll to "Valid OAuth Redirect URIs"
 - Add: `https://your-project.vercel.app/api/integrations/meta/callback`
