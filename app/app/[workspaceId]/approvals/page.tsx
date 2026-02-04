@@ -44,7 +44,7 @@ export default async function ApprovalsPage({
             </CardContent>
           </Card>
         ) : (
-          recommendations.map((rec) => (
+          recommendations.map((rec: typeof recommendations[number]) => (
             <Card key={rec.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -59,10 +59,10 @@ export default async function ApprovalsPage({
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 mb-4">
-                  {rec.proposedActions.map((action) => (
+                  {rec.proposedActions.map((action: typeof rec.proposedActions[number]) => (
                     <div key={action.id} className="text-sm border-l-2 pl-2">
                       <strong>{action.type}</strong> on {action.channel}{' '}
-                      {action.entity.name && `(${action.entity.name})`}
+                      {(action.entity as { name?: string }).name && `(${(action.entity as { name?: string }).name})`}
                       <p className="text-muted-foreground text-xs mt-1">
                         {action.rationale}
                       </p>
@@ -73,7 +73,7 @@ export default async function ApprovalsPage({
                   <ExecutionActions
                     recommendationId={rec.id}
                     workspaceId={workspaceId}
-                    actionIds={rec.proposedActions.map(a => a.id)}
+                    actionIds={rec.proposedActions.map((a: typeof rec.proposedActions[number]) => a.id)}
                   />
                 )}
               </CardContent>

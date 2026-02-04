@@ -331,12 +331,25 @@ LLM_BASE_URL=https://api.openai.com/v1
 LLM_MODEL=gpt-4o-mini
 ```
 
+**Optional: Use GPT-5.2**
+If your account has access and your provider supports it, you can use GPT-5.2 instead:
+```
+LLM_MODEL=gpt-5.2
+```
+
+**Why gpt-4o-mini by default?**
+- Lower cost for frequent recommendations
+- Faster response time for dashboards/cron jobs
+- Great quality for summarization and actions
+
+If you prefer higher reasoning quality and are fine with higher cost/latency, use GPT-5.2.
+
 #### Option 2: Other LLM Providers
 
-If using a different provider (Anthropic, etc.):
+If using a different provider (Anthropic, Azure OpenAI, etc.):
 - Get API key from their dashboard
 - Set `LLM_BASE_URL` to their API endpoint
-- Set `LLM_MODEL` to their model name
+- Set `LLM_MODEL` to their model name or deployment name
 
 ---
 
