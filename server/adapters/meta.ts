@@ -86,7 +86,9 @@ export async function syncMetaAdAccounts(workspaceId: string) {
 }
 
 export async function syncMetaCampaigns(workspaceId: string, accountId: string) {
-  const data = await fetchMetaAPI(workspaceId, `act_${accountId}/campaigns`, {
+  // Ensure we don't double-prefix with act_
+  const cleanAccountId = accountId.replace(/^act_/, '');
+  const data = await fetchMetaAPI(workspaceId, `act_${cleanAccountId}/campaigns`, {
     fields: 'id,name,status,objective',
   }) as { data: Array<{ id: string; name: string; status: string; objective?: string }> };
 
@@ -129,6 +131,9 @@ export async function syncMetaInsights(
   });
 
   for (const account of accounts) {
+    // Ensure we don't double-prefix with act_
+    const cleanAccountId = account.accountId.replace(/^act_/, '');
+    
     // Sync campaigns first
     await syncMetaCampaigns(workspaceId, account.accountId);
 
@@ -138,7 +143,7 @@ export async function syncMetaInsights(
 
     for (const campaign of campaigns) {
       // Fetch insights for campaign
-      const insights = await fetchMetaAPI(workspaceId, `act_${account.accountId}/insights`, {
+      const insights = await fetchMetaAPI(workspaceId, `act_${cleanAccountId}/insights`, {
         level: 'campaign',
         time_range: JSON.stringify({
           since: startDate.toISOString().split('T')[0],
