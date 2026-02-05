@@ -58,6 +58,7 @@ export async function fetchMetaAPI(
     });
   }
 
+  console.log(`Fetching Meta API: ${endpoint}`);
   const response = await fetch(url.toString());
   const data = await response.json();
   
@@ -158,7 +159,7 @@ export async function syncMetaCampaigns(workspaceId: string, accountId: string) 
         create: {
           id: `${workspaceId}_${campaign.id}`,
           workspaceId,
-          accountId: accountId, // Keep original format for consistency
+          accountId: accountId,
           campaignId: campaign.id,
           name: campaign.name || `Campaign ${campaign.id}`,
           status: campaign.status || 'UNKNOWN',
@@ -187,12 +188,17 @@ export async function syncMetaInsights(
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
+  // Format dates as YYYY-MM-DD
+  const since = startDate.toISOString().split('T')[0];
+  const until = endDate.toISOString().split('T')[0];
+
+  console.log(`Syncing insights from ${since} to ${until} (${days} days)`);
+
   const accounts = await prisma.metaAdAccount.findMany({
     where: { workspaceId },
   });
 
   if (accounts.length === 0) {
-    // Try to sync ad accounts first
     await syncMetaAdAccounts(workspaceId);
     const newAccounts = await prisma.metaAdAccount.findMany({
       where: { workspaceId },
@@ -211,27 +217,17 @@ export async function syncMetaInsights(
     // Sync campaigns first
     await syncMetaCampaigns(workspaceId, account.accountId);
 
-    const campaigns = await prisma.metaCampaign.findMany({
-      where: { workspaceId, accountId: account.accountId },
-    });
-
-    if (campaigns.length === 0) {
-      console.log(`No campaigns to sync insights for in account ${cleanAccountId}`);
-      continue;
-    }
-
-    // Fetch insights at account level with campaign breakdown (more efficient)
+    // Fetch insights at account level with campaign breakdown - this is more reliable
     try {
+      console.log(`Fetching insights for account ${cleanAccountId}...`);
+      
       const insights = await fetchMetaAPI(workspaceId, `act_${cleanAccountId}/insights`, {
         level: 'campaign',
-        time_range: JSON.stringify({
-          since: startDate.toISOString().split('T')[0],
-          until: endDate.toISOString().split('T')[0],
-        }),
-        // Use only well-supported fields
-        fields: 'campaign_id,campaign_name,spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions,action_values',
-        time_increment: '1',
-        limit: '1000',
+        time_range: JSON.stringify({ since, until }),
+        // Core metrics that are always available
+        fields: 'campaign_id,campaign_name,date_start,date_stop,spend,impressions,reach,clicks,ctr,cpc,cpm,actions,action_values',
+        time_increment: '1', // Daily breakdown
+        limit: '5000',
       }) as { data?: Array<Record<string, unknown>> };
 
       if (!insights.data || insights.data.length === 0) {
@@ -239,25 +235,69 @@ export async function syncMetaInsights(
         continue;
       }
 
+      console.log(`Processing ${insights.data.length} insight records for account ${cleanAccountId}`);
+
+      let processedCount = 0;
       for (const insight of insights.data) {
-        // Skip if no campaign_id (shouldn't happen but just in case)
-        if (!insight.campaign_id) continue;
+        if (!insight.campaign_id || !insight.date_start) {
+          continue;
+        }
         
         const date = new Date(insight.date_start as string);
+        const campaignId = insight.campaign_id as string;
         
-        // Extract purchase data from actions array (handles various action types)
+        // Extract purchase data from actions array
         const actions = (insight.actions as Array<{ action_type: string; value: string }>) || [];
         const actionValues = (insight.action_values as Array<{ action_type: string; value: string }>) || [];
         
-        // Look for various purchase action types
-        const purchaseActionTypes = ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'];
-        const purchaseAction = actions.find(a => purchaseActionTypes.includes(a.action_type));
-        const purchaseValueAction = actionValues.find(a => purchaseActionTypes.includes(a.action_type));
+        // Look for various purchase action types Meta uses
+        const purchaseActionTypes = [
+          'purchase',
+          'omni_purchase', 
+          'offsite_conversion.fb_pixel_purchase',
+          'onsite_conversion.purchase',
+          'app_custom_event.fb_mobile_purchase'
+        ];
         
-        const purchases = purchaseAction ? parseInt(purchaseAction.value) || 0 : 0;
-        const purchaseValue = purchaseValueAction ? parseFloat(purchaseValueAction.value) || 0 : 0;
+        let purchases = 0;
+        let purchaseValue = 0;
+        
+        for (const actionType of purchaseActionTypes) {
+          const purchaseAction = actions.find(a => a.action_type === actionType);
+          const valueAction = actionValues.find(a => a.action_type === actionType);
+          
+          if (purchaseAction) {
+            purchases += parseInt(purchaseAction.value) || 0;
+          }
+          if (valueAction) {
+            purchaseValue += parseFloat(valueAction.value) || 0;
+          }
+        }
+        
         const spend = parseFloat(insight.spend as string) || 0;
         const purchaseRoas = spend > 0 && purchaseValue > 0 ? purchaseValue / spend : null;
+        
+        // Make sure campaign exists in our database
+        const existingCampaign = await prisma.metaCampaign.findUnique({
+          where: {
+            workspaceId_campaignId: { workspaceId, campaignId },
+          },
+        });
+
+        if (!existingCampaign) {
+          // Create the campaign if it doesn't exist
+          await prisma.metaCampaign.create({
+            data: {
+              id: `${workspaceId}_${campaignId}`,
+              workspaceId,
+              accountId: account.accountId,
+              campaignId,
+              name: (insight.campaign_name as string) || `Campaign ${campaignId}`,
+              status: 'ACTIVE',
+              objective: null,
+            },
+          });
+        }
         
         await prisma.metaInsightDaily.upsert({
           where: {
@@ -265,21 +305,21 @@ export async function syncMetaInsights(
               workspaceId,
               date,
               level: 'CAMPAIGN',
-              entityId: insight.campaign_id as string,
+              entityId: campaignId,
             },
           },
           create: {
             workspaceId,
             date,
             level: 'CAMPAIGN',
-            entityId: insight.campaign_id as string,
+            entityId: campaignId,
             spend,
             impressions: parseInt(insight.impressions as string) || 0,
             clicks: parseInt(insight.clicks as string) || 0,
             ctr: parseFloat(insight.ctr as string) || 0,
             cpc: parseFloat(insight.cpc as string) || 0,
             cpm: parseFloat(insight.cpm as string) || 0,
-            frequency: insight.frequency ? parseFloat(insight.frequency as string) : null,
+            frequency: null,
             purchases,
             purchaseValue,
             purchaseRoas,
@@ -291,18 +331,20 @@ export async function syncMetaInsights(
             ctr: parseFloat(insight.ctr as string) || 0,
             cpc: parseFloat(insight.cpc as string) || 0,
             cpm: parseFloat(insight.cpm as string) || 0,
-            frequency: insight.frequency ? parseFloat(insight.frequency as string) : null,
+            frequency: null,
             purchases,
             purchaseValue,
             purchaseRoas,
           },
         });
+        
+        processedCount++;
       }
       
-      console.log(`Synced ${insights.data.length} insight records for account ${cleanAccountId}`);
+      console.log(`Saved ${processedCount} insight records for account ${cleanAccountId}`);
     } catch (error) {
       console.error(`Failed to sync insights for account ${cleanAccountId}:`, error);
-      // Continue with other accounts even if one fails
+      throw error; // Re-throw so user sees the error
     }
   }
 }
@@ -312,7 +354,6 @@ export async function testMetaConnection(workspaceId: string): Promise<{ success
   try {
     const token = await getMetaAccessToken(workspaceId);
     
-    // Test with a simple API call
     const data = await fetchMetaAPI(workspaceId, 'me', {
       fields: 'id,name',
     }) as { id: string; name: string };
