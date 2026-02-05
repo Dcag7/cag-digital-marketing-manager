@@ -57,6 +57,7 @@ interface CampaignsClientProps {
 type SortField = 'name' | 'status' | 'spend' | 'revenue' | 'roas' | 'cpa' | 'purchases';
 type SortDirection = 'asc' | 'desc';
 type StatusFilter = 'ALL' | 'ACTIVE' | 'PAUSED' | 'OTHER';
+type DeliveryFilter = 'ALL' | 'HAD_DELIVERY';
 
 const DATE_PRESETS = [
   { label: 'Today', days: 0 },
@@ -127,9 +128,9 @@ export function CampaignsClient({
 }: CampaignsClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('HAD_DELIVERY');
   const [sortField, setSortField] = useState<SortField>('spend');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [showOnlyWithActivity, setShowOnlyWithActivity] = useState(true);
   
   // Parse synced date range
   const syncedStart = useMemo(() => {
@@ -269,10 +270,10 @@ export function CampaignsClient({
           matchesStatus = !['ACTIVE', 'PAUSED'].includes(campaign.status.toUpperCase());
         }
         
-        // Filter out campaigns with no activity if toggle is on
-        const hasActivity = !showOnlyWithActivity || campaign.metrics.spend > 0 || campaign.metrics.impressions > 0;
+        // "Had Delivery" filter - only show campaigns with impressions in the date range
+        const hadDelivery = deliveryFilter === 'ALL' || campaign.metrics.impressions > 0;
         
-        return matchesSearch && matchesStatus && hasActivity;
+        return matchesSearch && matchesStatus && hadDelivery;
       })
       .sort((a, b) => {
         let aValue: string | number;
@@ -300,7 +301,7 @@ export function CampaignsClient({
 
   const filteredMetaCampaigns = useMemo(
     () => filterAndSortCampaigns(campaignsWithDateMetrics),
-    [campaignsWithDateMetrics, searchQuery, statusFilter, sortField, sortDirection, showOnlyWithActivity]
+    [campaignsWithDateMetrics, searchQuery, statusFilter, deliveryFilter, sortField, sortDirection]
   );
 
   // Calculate totals for filtered campaigns
@@ -427,13 +428,13 @@ export function CampaignsClient({
         
         <div className="flex items-center gap-2">
           <Button
-            variant={showOnlyWithActivity ? 'default' : 'outline'}
+            variant={deliveryFilter === 'HAD_DELIVERY' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setShowOnlyWithActivity(!showOnlyWithActivity)}
+            onClick={() => setDeliveryFilter(deliveryFilter === 'HAD_DELIVERY' ? 'ALL' : 'HAD_DELIVERY')}
             className="gap-2"
           >
             <Filter className="h-3 w-3" />
-            {showOnlyWithActivity ? 'With activity' : 'All campaigns'}
+            {deliveryFilter === 'HAD_DELIVERY' ? 'Had delivery' : 'All campaigns'}
           </Button>
         </div>
       </div>
@@ -545,8 +546,8 @@ export function CampaignsClient({
                         <p className="text-muted-foreground">
                           {metaCampaigns.length === 0 
                             ? 'No campaigns found. Sync your Meta account in Settings.'
-                            : showOnlyWithActivity 
-                              ? 'No campaigns with activity in this date range. Try expanding the date range or showing all campaigns.'
+                            : deliveryFilter === 'HAD_DELIVERY'
+                              ? 'No campaigns had delivery in this date range. Try "All campaigns" or expand the date range.'
                               : 'No campaigns match your filters.'}
                         </p>
                       </td>
