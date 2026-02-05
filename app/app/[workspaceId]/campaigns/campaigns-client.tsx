@@ -9,15 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Search, ArrowUpDown, Calendar, ChevronDown, TrendingUp, TrendingDown,
   AlertTriangle, Zap, Target, DollarSign, ShoppingCart, Eye,
-  RefreshCw, Filter, MoreHorizontal
+  Filter
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
 import {
   Popover,
   PopoverContent,
@@ -469,156 +462,119 @@ export function CampaignsClient({
 
           {/* Campaign Table */}
           <Card className="overflow-hidden">
-            {/* Table */}
-            <table className="w-full">
-              <thead>
-                <tr className="bg-muted/30 border-b text-xs font-medium">
-                  <th className="text-left px-4 py-3 w-[40%]">
-                    <SortHeader field="name" label="Campaign" />
-                  </th>
-                  <th className="text-right px-4 py-3 w-[12%]">
-                    <SortHeader field="spend" label="Spend" className="justify-end" />
-                  </th>
-                  <th className="text-right px-4 py-3 w-[14%]">
-                    <SortHeader field="revenue" label="Revenue" className="justify-end" />
-                  </th>
-                  <th className="text-right px-4 py-3 w-[10%]">
-                    <SortHeader field="roas" label="ROAS" className="justify-end" />
-                  </th>
-                  <th className="text-right px-4 py-3 w-[10%]">
-                    <SortHeader field="purchases" label="Purch." className="justify-end" />
-                  </th>
-                  <th className="text-right px-4 py-3 w-[14%]">
-                    <SortHeader field="cpa" label="CPA" className="justify-end" />
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-border/50">
-                {filteredMetaCampaigns.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center">
-                      <p className="text-muted-foreground">
-                        {metaCampaigns.length === 0 
-                          ? 'No campaigns found. Sync your Meta account in Settings.'
-                          : showOnlyWithActivity 
-                            ? 'No campaigns with activity in this date range. Try expanding the date range or showing all campaigns.'
-                            : 'No campaigns match your filters.'}
-                      </p>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left p-3 font-semibold text-muted-foreground">
+                      <SortHeader field="name" label="Campaign" />
+                    </th>
+                    <th className="text-right p-3 font-semibold text-muted-foreground">
+                      <SortHeader field="spend" label="Spend" className="justify-end" />
+                    </th>
+                    <th className="text-right p-3 font-semibold text-muted-foreground">
+                      <SortHeader field="revenue" label="Revenue" className="justify-end" />
+                    </th>
+                    <th className="text-right p-3 font-semibold text-muted-foreground">
+                      <SortHeader field="roas" label="ROAS" className="justify-end" />
+                    </th>
+                    <th className="text-right p-3 font-semibold text-muted-foreground">
+                      <SortHeader field="purchases" label="Purch." className="justify-end" />
+                    </th>
+                    <th className="text-right p-3 font-semibold text-muted-foreground">
+                      <SortHeader field="cpa" label="CPA" className="justify-end" />
+                    </th>
                   </tr>
-                ) : (
-                  filteredMetaCampaigns.map((campaign) => {
-                    const perf = getPerformanceIndicator(campaign.metrics.roas, campaign.metrics.spend);
-                    
-                    return (
-                      <tr 
-                        key={campaign.id} 
-                        className="hover:bg-muted/20 transition-colors group"
-                      >
-                        {/* Campaign Name & Status */}
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium truncate max-w-[280px]">{campaign.name}</span>
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 shrink-0 ${getStatusColor(campaign.status)}`}>
-                              {campaign.status}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {campaign.objective && (
-                              <span className="text-xs text-muted-foreground">{campaign.objective}</span>
-                            )}
-                            {perf && (
-                              <span className={`text-xs flex items-center gap-1 ${perf.color}`}>
-                                <perf.icon className="h-3 w-3" />
-                                {perf.label}
-                              </span>
-                            )}
-                          </div>
-                        </td>
+                </thead>
+
+                <tbody>
+                  {filteredMetaCampaigns.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center">
+                        <p className="text-muted-foreground">
+                          {metaCampaigns.length === 0 
+                            ? 'No campaigns found. Sync your Meta account in Settings.'
+                            : showOnlyWithActivity 
+                              ? 'No campaigns with activity in this date range. Try expanding the date range or showing all campaigns.'
+                              : 'No campaigns match your filters.'}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredMetaCampaigns.map((campaign) => {
+                      const perf = getPerformanceIndicator(campaign.metrics.roas, campaign.metrics.spend);
+                      
+                      return (
+                        <tr 
+                          key={campaign.id} 
+                          className="border-b border-border/50 transition-colors hover:bg-secondary/30 group"
+                        >
+                          {/* Campaign Name & Status */}
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{campaign.name}</span>
+                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 shrink-0 ${getStatusColor(campaign.status)}`}>
+                                {campaign.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {campaign.objective && (
+                                <span className="text-xs text-muted-foreground">{campaign.objective}</span>
+                              )}
+                              {perf && (
+                                <span className={`text-xs flex items-center gap-1 ${perf.color}`}>
+                                  <perf.icon className="h-3 w-3" />
+                                  {perf.label}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          
+                          {/* Spend */}
+                          <td className="p-3 text-right">{formatCurrency(campaign.metrics.spend)}</td>
+                          
+                          {/* Revenue */}
+                          <td className="p-3 text-right">{formatCurrency(campaign.metrics.revenue)}</td>
                         
-                        {/* Spend */}
-                        <td className="px-4 py-3 text-right">
-                          <span className="font-medium text-sm">{formatCurrency(campaign.metrics.spend)}</span>
-                        </td>
-                        
-                        {/* Revenue */}
-                        <td className="px-4 py-3 text-right">
-                          <span className="font-medium text-sm">{formatCurrency(campaign.metrics.revenue)}</span>
-                        </td>
-                        
-                        {/* ROAS */}
-                        <td className="px-4 py-3 text-right">
-                          <span className={`font-medium text-sm ${getRoasColor(campaign.metrics.roas)}`}>
+                          {/* ROAS */}
+                          <td className={`p-3 text-right ${getRoasColor(campaign.metrics.roas)}`}>
                             {campaign.metrics.roas > 0 ? `${campaign.metrics.roas.toFixed(2)}x` : '-'}
-                          </span>
-                        </td>
-                        
-                        {/* Purchases */}
-                        <td className="px-4 py-3 text-right">
-                          <span className="font-medium text-sm">{formatNumber(campaign.metrics.purchases)}</span>
-                        </td>
-                        
-                        {/* CPA */}
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="font-medium text-sm">
-                              {campaign.metrics.cpa > 0 ? formatCurrency(campaign.metrics.cpa) : '-'}
-                            </span>
-                            
-                            {/* Actions Menu */}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View details</DropdownMenuItem>
-                                <DropdownMenuItem>View in Meta</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-yellow-500">
-                                  Pause campaign
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-green-500">
-                                  Scale budget
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
+                          </td>
+                          
+                          {/* Purchases */}
+                          <td className="p-3 text-right">{formatNumber(campaign.metrics.purchases)}</td>
+                          
+                          {/* CPA */}
+                          <td className="p-3 text-right">
+                            {campaign.metrics.cpa > 0 ? formatCurrency(campaign.metrics.cpa) : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
 
-              {/* Table Footer - Totals */}
-              {filteredMetaCampaigns.length > 0 && (
-                <tfoot>
-                  <tr className="bg-muted/30 border-t font-medium text-sm">
-                    <td className="px-4 py-3">
-                      Total ({filteredMetaCampaigns.length} campaigns)
-                    </td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(totals.totalSpend)}</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(totals.totalRevenue)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={getRoasColor(totals.totalSpend > 0 ? totals.totalRevenue / totals.totalSpend : 0)}>
+                {/* Table Footer - Totals */}
+                {filteredMetaCampaigns.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t border-border font-semibold bg-secondary/20">
+                      <td className="p-3">
+                        Total ({filteredMetaCampaigns.length} campaigns)
+                      </td>
+                      <td className="p-3 text-right">{formatCurrency(totals.totalSpend)}</td>
+                      <td className="p-3 text-right">{formatCurrency(totals.totalRevenue)}</td>
+                      <td className={`p-3 text-right ${getRoasColor(totals.totalSpend > 0 ? totals.totalRevenue / totals.totalSpend : 0)}`}>
                         {totals.totalSpend > 0 ? (totals.totalRevenue / totals.totalSpend).toFixed(2) : '0.00'}x
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">{formatNumber(totals.totalPurchases)}</td>
-                    <td className="px-4 py-3 text-right">
-                      {totals.totalPurchases > 0 ? formatCurrency(totals.totalSpend / totals.totalPurchases) : '-'}
-                    </td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
+                      </td>
+                      <td className="p-3 text-right">{formatNumber(totals.totalPurchases)}</td>
+                      <td className="p-3 text-right">
+                        {totals.totalPurchases > 0 ? formatCurrency(totals.totalSpend / totals.totalPurchases) : '-'}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
           </Card>
         </TabsContent>
 
