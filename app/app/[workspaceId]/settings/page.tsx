@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { updateBusinessProfile } from '@/server/actions/business-profile';
 import { updateGuardrails } from '@/server/actions/guardrails';
 import { revalidatePath } from 'next/cache';
+import { SyncButton } from './sync-buttons';
 
 export default async function SettingsPage({
   params,
@@ -57,7 +58,7 @@ export default async function SettingsPage({
               <CardTitle>Meta Marketing API</CardTitle>
               <CardDescription>Connect your Facebook ad account</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm">
@@ -75,6 +76,11 @@ export default async function SettingsPage({
                   </Link>
                 </Button>
               </div>
+              <SyncButton 
+                workspaceId={workspaceId} 
+                integrationType="META" 
+                isConnected={integrations.find(i => i.type === 'META')?.status === 'CONNECTED'} 
+              />
             </CardContent>
           </Card>
 
@@ -83,7 +89,7 @@ export default async function SettingsPage({
               <CardTitle>Shopify</CardTitle>
               <CardDescription>Connect your Shopify store</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm">
@@ -101,6 +107,11 @@ export default async function SettingsPage({
                   </Link>
                 </Button>
               </div>
+              <SyncButton 
+                workspaceId={workspaceId} 
+                integrationType="SHOPIFY" 
+                isConnected={integrations.find(i => i.type === 'SHOPIFY')?.status === 'CONNECTED'} 
+              />
             </CardContent>
           </Card>
 
@@ -109,7 +120,7 @@ export default async function SettingsPage({
               <CardTitle>Google Ads</CardTitle>
               <CardDescription>Connect your Google Ads account</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm">
@@ -127,6 +138,11 @@ export default async function SettingsPage({
                   </Link>
                 </Button>
               </div>
+              <SyncButton 
+                workspaceId={workspaceId} 
+                integrationType="GOOGLE_ADS" 
+                isConnected={integrations.find(i => i.type === 'GOOGLE_ADS')?.status === 'CONNECTED'} 
+              />
             </CardContent>
           </Card>
         </TabsContent>
