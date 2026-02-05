@@ -138,21 +138,27 @@ export async function applyRules(
   workspaceId: string,
   entities: EntityPerformance[]
 ): Promise<RuleResult[]> {
-  const businessProfile = await prisma.workspaceBusinessProfile.findUnique({
-    where: { workspaceId },
-  });
+  const [businessProfile, guardrails] = await Promise.all([
+    prisma.workspaceBusinessProfile.findUnique({
+      where: { workspaceId },
+    }),
+    prisma.workspaceGuardrails.findUnique({
+      where: { workspaceId },
+    }),
+  ]);
 
   if (!businessProfile) {
     throw new Error('Business profile not configured');
   }
 
+  const minSpendZar = guardrails?.minSpendZar ?? 100;
   const results: RuleResult[] = [];
 
   for (const entity of entities) {
     // Rule 1: ROAS below break-even OR CPA above target -> reduce or pause
     if (entity.roas < businessProfile.breakEvenRoas || entity.cpa > businessProfile.targetCpaZar) {
       // If spend is very low and no purchases, pause
-      if (entity.spend < businessProfile.minSpendZar && entity.purchases === 0) {
+      if (entity.spend < minSpendZar && entity.purchases === 0) {
         results.push({
           action: 'PAUSE',
           entity,
@@ -170,7 +176,7 @@ export async function applyRules(
     }
 
     // Rule 2: High spend with zero purchases -> pause
-    if (entity.spend >= businessProfile.minSpendZar && entity.purchases === 0) {
+    if (entity.spend >= minSpendZar && entity.purchases === 0) {
       results.push({
         action: 'PAUSE',
         entity,

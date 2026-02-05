@@ -89,12 +89,18 @@ describe('Rules Engine', () => {
       targetCpaZar: 100,
       breakEvenRoas: 2.5,
       grossMarginPct: 0.4,
+    };
+
+    const mockGuardrails = {
       minSpendZar: 50,
     };
 
     beforeEach(() => {
       vi.mocked(prisma.workspaceBusinessProfile.findUnique).mockResolvedValue(
         mockBusinessProfile as any
+      );
+      vi.mocked(prisma.workspaceGuardrails.findUnique).mockResolvedValue(
+        mockGuardrails as any
       );
     });
 
