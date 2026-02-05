@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/db';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CampaignsClient } from './campaigns-client';
 
 export default async function CampaignsPage({
   params,
@@ -9,98 +8,87 @@ export default async function CampaignsPage({
 }) {
   const { workspaceId } = await params;
 
+  // Get campaigns with their insights aggregated
   const metaCampaigns = await prisma.metaCampaign.findMany({
     where: { workspaceId },
-    include: {
-      adSets: {
-        include: {
-          ads: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { name: 'asc' },
   });
 
+  // Get insights for the last 7 days for quick metrics
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const insights = await prisma.metaInsightDaily.groupBy({
+    by: ['entityId'],
+    where: {
+      workspaceId,
+      level: 'CAMPAIGN',
+      date: { gte: sevenDaysAgo },
+    },
+    _sum: {
+      spend: true,
+      impressions: true,
+      clicks: true,
+      purchases: true,
+      purchaseValue: true,
+    },
+  });
+
+  // Create a map of campaign metrics
+  const metricsMap = new Map(
+    insights.map((i) => [
+      i.entityId,
+      {
+        spend: i._sum.spend || 0,
+        impressions: i._sum.impressions || 0,
+        clicks: i._sum.clicks || 0,
+        purchases: i._sum.purchases || 0,
+        revenue: i._sum.purchaseValue || 0,
+        roas: i._sum.spend && i._sum.spend > 0 
+          ? (i._sum.purchaseValue || 0) / i._sum.spend 
+          : 0,
+        cpa: i._sum.purchases && i._sum.purchases > 0 
+          ? (i._sum.spend || 0) / i._sum.purchases 
+          : 0,
+      },
+    ])
+  );
+
+  // Combine campaigns with their metrics
+  const campaignsWithMetrics = metaCampaigns.map((campaign) => ({
+    id: campaign.id,
+    campaignId: campaign.campaignId,
+    name: campaign.name,
+    status: campaign.status,
+    objective: campaign.objective,
+    metrics: metricsMap.get(campaign.campaignId) || {
+      spend: 0,
+      impressions: 0,
+      clicks: 0,
+      purchases: 0,
+      revenue: 0,
+      roas: 0,
+      cpa: 0,
+    },
+  }));
+
+  // Get Google campaigns (basic for now)
   const googleCampaigns = await prisma.googleCampaign.findMany({
     where: { workspaceId },
-    include: {
-      adGroups: {
-        include: {
-          ads: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { name: 'asc' },
   });
 
-  type MetaCampaignType = typeof metaCampaigns[number];
-  type GoogleCampaignType = typeof googleCampaigns[number];
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Campaigns</h1>
-        <p className="text-muted-foreground">Manage your advertising campaigns</p>
-      </div>
-
-      <Tabs defaultValue="meta" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="meta">Meta ({metaCampaigns.length})</TabsTrigger>
-          <TabsTrigger value="google">Google ({googleCampaigns.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="meta" className="space-y-4">
-          {metaCampaigns.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-muted-foreground">No Meta campaigns found. Connect Meta integration to sync.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            metaCampaigns.map((campaign: MetaCampaignType) => (
-              <Card key={campaign.id}>
-                <CardHeader>
-                  <CardTitle>{campaign.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Status: {campaign.status} | Objective: {campaign.objective || 'N/A'}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm">
-                    Ad Sets: {campaign.adSets.length} | Ads: {campaign.adSets.reduce((sum, adSet) => sum + adSet.ads.length, 0)}
-                  </p>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="google" className="space-y-4">
-          {googleCampaigns.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-muted-foreground">No Google Ads campaigns found. Connect Google Ads integration to sync.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            googleCampaigns.map((campaign: GoogleCampaignType) => (
-              <Card key={campaign.id}>
-                <CardHeader>
-                  <CardTitle>{campaign.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Status: {campaign.status}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm">
-                    Ad Groups: {campaign.adGroups.length} | Ads: {campaign.adGroups.reduce((sum, adGroup) => sum + adGroup.ads.length, 0)}
-                  </p>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+    <CampaignsClient
+      workspaceId={workspaceId}
+      metaCampaigns={campaignsWithMetrics}
+      googleCampaigns={googleCampaigns.map((c) => ({
+        id: c.id,
+        campaignId: c.campaignId,
+        name: c.name,
+        status: c.status,
+        metrics: { spend: 0, impressions: 0, clicks: 0, purchases: 0, revenue: 0, roas: 0, cpa: 0 },
+      }))}
+    />
   );
 }

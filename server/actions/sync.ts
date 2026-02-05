@@ -8,9 +8,10 @@ export type SyncResult = {
   success: boolean;
   message: string;
   error?: string;
+  details?: string;
 };
 
-export async function syncMetaData(workspaceId: string): Promise<SyncResult> {
+export async function syncMetaData(workspaceId: string, days: number = 90): Promise<SyncResult> {
   try {
     // Check if integration is connected
     const integration = await prisma.integration.findFirst({
@@ -33,15 +34,23 @@ export async function syncMetaData(workspaceId: string): Promise<SyncResult> {
     await syncMetaAdAccounts(workspaceId);
     
     // Then sync insights (which also syncs campaigns)
-    await syncMetaInsights(workspaceId, 7);
+    await syncMetaInsights(workspaceId, days);
+
+    // Get counts for feedback
+    const [campaignCount, insightCount] = await Promise.all([
+      prisma.metaCampaign.count({ where: { workspaceId } }),
+      prisma.metaInsightDaily.count({ where: { workspaceId } }),
+    ]);
 
     revalidatePath(`/app/${workspaceId}`);
     revalidatePath(`/app/${workspaceId}/campaigns`);
+    revalidatePath(`/app/${workspaceId}/overview`);
     revalidatePath(`/app/${workspaceId}/settings`);
 
     return {
       success: true,
       message: 'Meta data synced successfully',
+      details: `Synced ${campaignCount} campaigns with ${insightCount} daily insight records (last ${days} days)`,
     };
   } catch (error) {
     console.error('Meta sync error:', error);
@@ -78,13 +87,6 @@ export async function syncShopifyData(workspaceId: string): Promise<SyncResult> 
       message: 'Shopify sync coming soon',
       error: 'Shopify data sync is not yet implemented',
     };
-
-    // TODO: Implement Shopify sync when adapter is ready
-    // const { syncShopifyOrders } = await import('@/server/adapters/shopify');
-    // await syncShopifyOrders(workspaceId, 7);
-    // revalidatePath(`/app/${workspaceId}`);
-    // revalidatePath(`/app/${workspaceId}/settings`);
-    // return { success: true, message: 'Shopify data synced successfully' };
   } catch (error) {
     console.error('Shopify sync error:', error);
     return {
@@ -120,14 +122,6 @@ export async function syncGoogleData(workspaceId: string): Promise<SyncResult> {
       message: 'Google Ads sync coming soon',
       error: 'Google Ads data sync is not yet implemented',
     };
-
-    // TODO: Implement Google Ads sync when adapter is ready
-    // const { syncGoogleInsights } = await import('@/server/adapters/google');
-    // await syncGoogleInsights(workspaceId, 7);
-    // revalidatePath(`/app/${workspaceId}`);
-    // revalidatePath(`/app/${workspaceId}/campaigns`);
-    // revalidatePath(`/app/${workspaceId}/settings`);
-    // return { success: true, message: 'Google Ads data synced successfully' };
   } catch (error) {
     console.error('Google sync error:', error);
     return {
