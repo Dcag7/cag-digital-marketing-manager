@@ -215,13 +215,14 @@ export async function syncMetaInsights(
   for (const account of accounts) {
     const cleanAccountId = normalizeAccountId(account.accountId);
     
-    // Sync campaigns first
+    // Sync campaigns first - this will get all campaigns including paused/inactive
     await syncMetaCampaigns(workspaceId, account.accountId);
 
-    // Fetch insights at account level with campaign breakdown - this is more reliable
+    // Fetch insights at account level with campaign breakdown
     try {
-      console.log(`Fetching insights for account ${cleanAccountId}...`);
+      console.log(`Fetching insights for account ${cleanAccountId} from ${since} to ${until}...`);
       
+      // Fetch ALL insights - including for paused campaigns
       const insights = await fetchMetaAPI(workspaceId, `act_${cleanAccountId}/insights`, {
         level: 'campaign',
         time_range: JSON.stringify({ since, until }),
@@ -229,7 +230,19 @@ export async function syncMetaInsights(
         fields: 'campaign_id,campaign_name,date_start,date_stop,spend,impressions,reach,clicks,ctr,cpc,cpm,actions,action_values',
         time_increment: '1', // Daily breakdown
         limit: '5000',
-      }) as { data?: Array<Record<string, unknown>> };
+        // Don't filter by status - we want insights for ALL campaigns including paused
+      }) as { data?: Array<Record<string, unknown>>, paging?: { next?: string } };
+      
+      // Log what campaigns we got insights for
+      const campaignIdsWithInsights = new Set<string>();
+      if (insights.data) {
+        for (const insight of insights.data) {
+          if (insight.campaign_id) {
+            campaignIdsWithInsights.add(insight.campaign_id as string);
+          }
+        }
+      }
+      console.log(`Received insights for ${campaignIdsWithInsights.size} unique campaigns:`, Array.from(campaignIdsWithInsights));
 
       if (!insights.data || insights.data.length === 0) {
         console.log(`No insights data for account ${cleanAccountId} in the last ${days} days`);
