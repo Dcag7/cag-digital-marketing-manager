@@ -1,49 +1,104 @@
 'use server';
 
 import { prisma } from '@/lib/db';
-import { checkWorkspaceAccess } from './workspace';
+import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 
-const updateBusinessProfileSchema = z.object({
-  targetCpaZar: z.number().min(0),
-  breakEvenRoas: z.number().min(0),
-  grossMarginPct: z.number().min(0).max(1),
-  avgShippingCostZar: z.number().min(0).optional(),
-  returnRatePct: z.number().min(0).max(1).optional(),
-  paymentFeesPct: z.number().min(0).max(1).optional(),
-  monthlySpendCapZar: z.number().min(0).optional().nullable(),
-  strategicMode: z.enum(['GROWTH', 'EFFICIENCY', 'RECOVERY', 'LIQUIDATION', 'HOLD']).optional(),
-  constraints: z.any().optional(),
-  productPriorities: z.any().optional(),
-});
+type StrategicMode = 'GROWTH' | 'EFFICIENCY' | 'RECOVERY' | 'LIQUIDATION' | 'HOLD';
 
+interface BusinessProfileData {
+  targetCpaZar: number;
+  breakEvenRoas: number;
+  grossMarginPct: number;
+  avgShippingCostZar: number;
+  returnRatePct: number;
+  paymentFeesPct: number;
+  monthlySpendCapZar: number | null;
+  strategicMode: StrategicMode;
+}
+
+// Alias for the settings page form
 export async function updateBusinessProfile(
   workspaceId: string,
-  data: z.infer<typeof updateBusinessProfileSchema>
+  data: BusinessProfileData
 ) {
-  const hasAccess = await checkWorkspaceAccess(workspaceId, 'ADMIN');
-  if (!hasAccess) throw new Error('Unauthorized');
+  return saveBusinessProfile(workspaceId, data);
+}
 
-  const validated = updateBusinessProfileSchema.parse(data);
+export async function getBusinessProfile(workspaceId: string) {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error('Unauthorized');
+  }
+
+  const profile = await prisma.workspaceBusinessProfile.findUnique({
+    where: { workspaceId },
+  });
+
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    id: profile.id,
+    targetCpaZar: profile.targetCpaZar,
+    breakEvenRoas: profile.breakEvenRoas,
+    grossMarginPct: profile.grossMarginPct,
+    avgShippingCostZar: profile.avgShippingCostZar,
+    returnRatePct: profile.returnRatePct,
+    paymentFeesPct: profile.paymentFeesPct,
+    monthlySpendCapZar: profile.monthlySpendCapZar,
+    strategicMode: profile.strategicMode as StrategicMode,
+  };
+}
+
+export async function saveBusinessProfile(
+  workspaceId: string,
+  data: BusinessProfileData
+) {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error('Unauthorized');
+  }
+
+  // Verify user has access to workspace
+  const member = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: { workspaceId, userId },
+    },
+  });
+
+  if (!member || !['OWNER', 'ADMIN'].includes(member.role)) {
+    throw new Error('Unauthorized - Admin access required');
+  }
 
   await prisma.workspaceBusinessProfile.upsert({
     where: { workspaceId },
     create: {
       workspaceId,
-      targetCpaZar: validated.targetCpaZar,
-      breakEvenRoas: validated.breakEvenRoas,
-      grossMarginPct: validated.grossMarginPct,
-      avgShippingCostZar: validated.avgShippingCostZar || 0,
-      returnRatePct: validated.returnRatePct || 0,
-      paymentFeesPct: validated.paymentFeesPct || 0.03,
-      monthlySpendCapZar: validated.monthlySpendCapZar || null,
-      strategicMode: validated.strategicMode || 'GROWTH',
-      constraints: validated.constraints || null,
-      productPriorities: validated.productPriorities || null,
+      targetCpaZar: data.targetCpaZar,
+      breakEvenRoas: data.breakEvenRoas,
+      grossMarginPct: data.grossMarginPct,
+      avgShippingCostZar: data.avgShippingCostZar,
+      returnRatePct: data.returnRatePct,
+      paymentFeesPct: data.paymentFeesPct,
+      monthlySpendCapZar: data.monthlySpendCapZar,
+      strategicMode: data.strategicMode,
     },
-    update: validated,
+    update: {
+      targetCpaZar: data.targetCpaZar,
+      breakEvenRoas: data.breakEvenRoas,
+      grossMarginPct: data.grossMarginPct,
+      avgShippingCostZar: data.avgShippingCostZar,
+      returnRatePct: data.returnRatePct,
+      paymentFeesPct: data.paymentFeesPct,
+      monthlySpendCapZar: data.monthlySpendCapZar,
+      strategicMode: data.strategicMode,
+    },
   });
 
-  revalidatePath(`/app/${workspaceId}/settings`);
+  revalidatePath(`/app/${workspaceId}/settings/business-profile`);
+  revalidatePath(`/app/${workspaceId}/recommendations`);
+  
+  return { success: true };
 }
