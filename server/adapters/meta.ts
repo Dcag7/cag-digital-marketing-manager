@@ -273,10 +273,10 @@ export async function syncMetaInsights(
           purchaseValue = parseFloat(valueAction.value) || 0;
         }
         
+        const spend = parseFloat(insight.spend as string) || 0;
+        
         // Debug logging
         console.log(`Campaign ${campaignId} (${insight.date_start}): spend=${spend}, purchases=${purchases}, revenue=${purchaseValue}`);
-        
-        const spend = parseFloat(insight.spend as string) || 0;
         const purchaseRoas = spend > 0 && purchaseValue > 0 ? purchaseValue / spend : null;
         
         // Make sure campaign exists in our database
