@@ -149,12 +149,26 @@ export async function syncMetaInsights(
           since: startDate.toISOString().split('T')[0],
           until: endDate.toISOString().split('T')[0],
         }),
-        fields: 'spend,impressions,clicks,ctr,cpc,cpm,frequency,purchases,purchase_value,purchase_roas',
+        fields: 'spend,impressions,clicks,ctr,cpc,cpm,frequency,actions,action_values,cost_per_action_type',
         time_increment: '1',
+        filtering: JSON.stringify([{ field: 'campaign.id', operator: 'EQUAL', value: campaign.campaignId }]),
       }) as { data: Array<Record<string, unknown>> };
 
       for (const insight of insights.data) {
         const date = new Date(insight.date_start as string);
+        
+        // Extract purchase data from actions array
+        const actions = (insight.actions as Array<{ action_type: string; value: string }>) || [];
+        const actionValues = (insight.action_values as Array<{ action_type: string; value: string }>) || [];
+        
+        const purchaseAction = actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+        const purchaseValueAction = actionValues.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+        
+        const purchases = purchaseAction ? parseInt(purchaseAction.value) || 0 : 0;
+        const purchaseValue = purchaseValueAction ? parseFloat(purchaseValueAction.value) || 0 : 0;
+        const spend = parseFloat(insight.spend as string) || 0;
+        const purchaseRoas = spend > 0 ? purchaseValue / spend : null;
+        
         await prisma.metaInsightDaily.upsert({
           where: {
             workspaceId_date_level_entityId: {
@@ -169,28 +183,28 @@ export async function syncMetaInsights(
             date,
             level: 'CAMPAIGN',
             entityId: campaign.campaignId,
-            spend: parseFloat(insight.spend as string) || 0,
+            spend,
             impressions: parseInt(insight.impressions as string) || 0,
             clicks: parseInt(insight.clicks as string) || 0,
             ctr: parseFloat(insight.ctr as string) || 0,
             cpc: parseFloat(insight.cpc as string) || 0,
             cpm: parseFloat(insight.cpm as string) || 0,
             frequency: insight.frequency ? parseFloat(insight.frequency as string) : null,
-            purchases: parseInt(insight.purchases as string) || 0,
-            purchaseValue: parseFloat(insight.purchase_value as string) || 0,
-            purchaseRoas: insight.purchase_roas ? parseFloat(insight.purchase_roas as string) : null,
+            purchases,
+            purchaseValue,
+            purchaseRoas,
           },
           update: {
-            spend: parseFloat(insight.spend as string) || 0,
+            spend,
             impressions: parseInt(insight.impressions as string) || 0,
             clicks: parseInt(insight.clicks as string) || 0,
             ctr: parseFloat(insight.ctr as string) || 0,
             cpc: parseFloat(insight.cpc as string) || 0,
             cpm: parseFloat(insight.cpm as string) || 0,
             frequency: insight.frequency ? parseFloat(insight.frequency as string) : null,
-            purchases: parseInt(insight.purchases as string) || 0,
-            purchaseValue: parseFloat(insight.purchase_value as string) || 0,
-            purchaseRoas: insight.purchase_roas ? parseFloat(insight.purchase_roas as string) : null,
+            purchases,
+            purchaseValue,
+            purchaseRoas,
           },
         });
       }
