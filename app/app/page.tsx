@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 import { getUserWorkspaces } from '@/server/actions/workspace';
+import { CreateWorkspaceForm } from './create-workspace-form';
 
 export default async function AppPage() {
   const workspaces = await getUserWorkspaces();
 
   if (workspaces.length === 0) {
-    // Show create workspace UI
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-md space-y-4">
@@ -13,7 +13,7 @@ export default async function AppPage() {
           <p className="text-muted-foreground text-center">
             A workspace represents a client or brand you'll manage.
           </p>
-          {/* Workspace creation form will be added */}
+          <CreateWorkspaceForm />
         </div>
       </div>
     );
