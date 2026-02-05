@@ -109,9 +109,9 @@ export async function analyzeEntityPerformance(
       },
     });
 
-    const spend = (insights._sum.costMicros?.toNumber() || 0) / 1_000_000;
-    const revenue = insights._sum.conversionValue?.toNumber() || 0;
-    const conversions = insights._sum.conversions?.toNumber() || 0;
+    const spend = Number(insights._sum.costMicros || 0) / 1_000_000;
+    const revenue = Number(insights._sum.conversionValue || 0);
+    const conversions = Number(insights._sum.conversions || 0);
 
     if (spend > 0) {
       results.push({
