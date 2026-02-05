@@ -106,7 +106,7 @@ export default async function RecommendationsPage({
                       {rec.proposedActions.slice(0, 3).map((action) => (
                         <li key={action.id} className="text-sm border-l-2 pl-2">
                           <strong>{action.type}</strong> on {action.channel}{' '}
-                          {action.entity.name && `(${action.entity.name})`}
+                          {(action.entity as { name?: string } | null)?.name && `(${(action.entity as { name?: string }).name})`}
                           <p className="text-muted-foreground text-xs mt-1">
                             {action.rationale}
                           </p>
