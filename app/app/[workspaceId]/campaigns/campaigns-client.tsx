@@ -131,6 +131,17 @@ export function CampaignsClient({
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showOnlyWithActivity, setShowOnlyWithActivity] = useState(true);
   
+  // Parse synced date range
+  const syncedStart = useMemo(() => {
+    if (syncedDateRange.start === 'Not synced') return null;
+    return new Date(syncedDateRange.start);
+  }, [syncedDateRange.start]);
+  
+  const syncedEnd = useMemo(() => {
+    if (syncedDateRange.end === 'Not synced') return null;
+    return new Date(syncedDateRange.end);
+  }, [syncedDateRange.end]);
+  
   // Date range state
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => {
     const end = new Date();
@@ -139,6 +150,28 @@ export function CampaignsClient({
     return { start, end };
   });
   const [selectedPreset, setSelectedPreset] = useState('Last 7 days');
+
+  // Check if selected date range is covered by synced data
+  const dataCoverageWarning = useMemo(() => {
+    if (!syncedStart || !syncedEnd) {
+      return 'No data synced. Go to Settings → Integrations to sync your Meta account.';
+    }
+    
+    const selectedStart = dateRange.start;
+    const selectedEnd = dateRange.end;
+    
+    // Check if selected range extends beyond synced data
+    if (selectedStart < syncedStart) {
+      const daysMissing = Math.ceil((syncedStart.getTime() - selectedStart.getTime()) / (1000 * 60 * 60 * 24));
+      return `⚠️ Missing ${daysMissing} days of data. Synced data starts from ${formatDate(syncedStart)}. Go to Settings to sync more history.`;
+    }
+    
+    if (selectedEnd > syncedEnd) {
+      return `⚠️ Data may be outdated. Last sync: ${formatDate(syncedEnd)}. Sync again for latest data.`;
+    }
+    
+    return null;
+  }, [dateRange, syncedStart, syncedEnd]);
 
   // Calculate metrics for the selected date range from daily insights
   const metricsForDateRange = useMemo(() => {
@@ -347,6 +380,24 @@ export function CampaignsClient({
           </Popover>
         </div>
       </div>
+
+      {/* Data Coverage Warning */}
+      {dataCoverageWarning && (
+        <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+          <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-yellow-200">{dataCoverageWarning}</p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="shrink-0 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20"
+            onClick={() => window.location.href = `/app/${workspaceId}/settings`}
+          >
+            Sync Now
+          </Button>
+        </div>
+      )}
 
       {/* Filters Row */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
