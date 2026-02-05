@@ -11,7 +11,7 @@ export type SyncResult = {
   details?: string;
 };
 
-export async function syncMetaData(workspaceId: string, days: number = 90): Promise<SyncResult> {
+export async function syncMetaData(workspaceId: string, days: number = 90, clearFirst: boolean = true): Promise<SyncResult> {
   try {
     // Check if integration is connected
     const integration = await prisma.integration.findFirst({
@@ -28,6 +28,20 @@ export async function syncMetaData(workspaceId: string, days: number = 90): Prom
         message: 'Meta integration not connected',
         error: 'Please connect your Meta account first',
       };
+    }
+
+    // Clear old insight data to prevent stale/duplicate data
+    if (clearFirst) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      
+      await prisma.metaInsightDaily.deleteMany({
+        where: {
+          workspaceId,
+          date: { gte: cutoffDate },
+        },
+      });
+      console.log(`Cleared existing insights for last ${days} days`);
     }
 
     // Sync ad accounts first
