@@ -154,3 +154,74 @@ export async function updateMemberRole(data: z.infer<typeof updateMemberRoleSche
 
   revalidatePath(`/app/${member.workspaceId}/settings`);
 }
+
+const addMemberSchema = z.object({
+  workspaceId: z.string(),
+  userId: z.string(),
+  role: z.enum(['ADMIN', 'OPERATOR', 'VIEWER']),
+});
+
+export async function addMember(data: z.infer<typeof addMemberSchema>) {
+  const { userId: currentUserId } = await auth();
+  if (!currentUserId) throw new Error('Unauthorized');
+
+  const validated = addMemberSchema.parse(data);
+
+  // Check if current user is ADMIN or OWNER
+  const hasAccess = await checkWorkspaceAccess(validated.workspaceId, 'ADMIN');
+  if (!hasAccess) throw new Error('Unauthorized');
+
+  // Check if member already exists
+  const existing = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: {
+        workspaceId: validated.workspaceId,
+        userId: validated.userId,
+      },
+    },
+  });
+  if (existing) throw new Error('User is already a member of this workspace');
+
+  await prisma.workspaceMember.create({
+    data: {
+      workspaceId: validated.workspaceId,
+      userId: validated.userId,
+      role: validated.role,
+    },
+  });
+
+  revalidatePath(`/app/${validated.workspaceId}/settings`);
+}
+
+export async function removeMember(workspaceId: string, memberId: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  // Check if current user is ADMIN or OWNER
+  const hasAccess = await checkWorkspaceAccess(workspaceId, 'ADMIN');
+  if (!hasAccess) throw new Error('Unauthorized');
+
+  // Get the member to verify
+  const member = await prisma.workspaceMember.findUnique({
+    where: { id: memberId },
+  });
+  if (!member || member.workspaceId !== workspaceId) {
+    throw new Error('Member not found');
+  }
+
+  // Prevent removing OWNER
+  if (member.role === 'OWNER') {
+    throw new Error('Cannot remove workspace owner');
+  }
+
+  // Prevent removing yourself
+  if (member.userId === userId) {
+    throw new Error('Cannot remove yourself');
+  }
+
+  await prisma.workspaceMember.delete({
+    where: { id: memberId },
+  });
+
+  revalidatePath(`/app/${workspaceId}/settings`);
+}

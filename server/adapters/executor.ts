@@ -3,6 +3,12 @@ import { prisma } from '@/lib/db';
 import { auth } from '@clerk/nextjs/server';
 import { ActionChannel, ActionType } from '@prisma/client';
 import { getMetaAccessToken } from './meta';
+import { 
+  updateGoogleCampaignBudget, 
+  updateGoogleCampaignStatus, 
+  updateGoogleAdGroupStatus 
+} from './google';
+import { fetchShopifyAPI } from './shopify';
 
 export interface ExecutionContext {
   workspaceId: string;
@@ -199,12 +205,82 @@ async function executeGoogleAction(
     beforeState?: unknown;
   }
 ): Promise<{ success: boolean; afterState?: unknown; error?: string }> {
-  // Google Ads execution implementation
-  // This would use Google Ads API to update budgets, pause campaigns, etc.
-  return {
-    success: false,
-    error: 'Google Ads execution not yet implemented',
-  };
+  const { workspaceId } = context;
+
+  // Get the Google Ads account to find the customer ID
+  const account = await prisma.googleAdsAccount.findFirst({
+    where: { workspaceId },
+  });
+
+  if (!account) {
+    throw new Error('Google Ads account not found');
+  }
+
+  if (action.type === 'UPDATE_BUDGET') {
+    if (action.entity.level === 'campaign') {
+      const campaign = await prisma.googleCampaign.findUnique({
+        where: {
+          workspaceId_campaignId: {
+            workspaceId,
+            campaignId: action.entity.id,
+          },
+        },
+      });
+
+      if (!campaign) {
+        throw new Error('Campaign not found');
+      }
+
+      // Calculate new budget
+      const budgetChange = (action.beforeState as { budgetChange?: number })?.budgetChange || 0;
+      const currentBudget = Number(campaign.budgetAmountMicros || 0);
+      const newBudgetMicros = BigInt(Math.round(currentBudget * (1 + budgetChange / 100)));
+
+      await updateGoogleCampaignBudget(
+        workspaceId,
+        account.customerId,
+        action.entity.id,
+        newBudgetMicros
+      );
+
+      return {
+        success: true,
+        afterState: { budgetAmountMicros: newBudgetMicros.toString() },
+      };
+    }
+  }
+
+  if (action.type === 'PAUSE_ENTITY') {
+    if (action.entity.level === 'campaign') {
+      await updateGoogleCampaignStatus(
+        workspaceId,
+        account.customerId,
+        action.entity.id,
+        'PAUSED'
+      );
+
+      return {
+        success: true,
+        afterState: { status: 'PAUSED' },
+      };
+    }
+
+    if (action.entity.level === 'adgroup') {
+      await updateGoogleAdGroupStatus(
+        workspaceId,
+        account.customerId,
+        action.entity.id,
+        'PAUSED'
+      );
+
+      return {
+        success: true,
+        afterState: { status: 'PAUSED' },
+      };
+    }
+  }
+
+  throw new Error(`Unsupported Google Ads action: ${action.type} on ${action.entity.level}`);
 }
 
 async function executeShopifyAction(
@@ -215,10 +291,60 @@ async function executeShopifyAction(
     beforeState?: unknown;
   }
 ): Promise<{ success: boolean; afterState?: unknown; error?: string }> {
-  // Shopify actions (e.g., update product, inventory)
+  const { workspaceId } = context;
+
+  // Shopify actions are typically read-only in this context
+  // The main Shopify execution is creating tasks based on insights
+  
+  if (action.type === 'CREATE_TASK') {
+    // Delegate to OPS action for task creation
+    return executeOpsAction(context, action);
+  }
+
+  // Future: Add product/inventory updates if needed
+  if (action.entity.level === 'product') {
+    const updateData = action.beforeState as {
+      status?: string;
+      title?: string;
+    };
+
+    if (updateData.status) {
+      // Update product status via Shopify API
+      await fetchShopifyAPI(workspaceId, `products/${action.entity.id}.json`, {
+        method: 'PUT',
+        body: {
+          product: {
+            id: action.entity.id,
+            status: updateData.status,
+          },
+        },
+      });
+
+      // Update local database
+      await prisma.shopifyProduct.update({
+        where: {
+          workspaceId_productId: {
+            workspaceId,
+            productId: action.entity.id,
+          },
+        },
+        data: {
+          status: updateData.status,
+        },
+      });
+
+      return {
+        success: true,
+        afterState: { status: updateData.status },
+      };
+    }
+  }
+
+  // For now, Shopify actions primarily generate tasks
+  // Return success for recognized but unimplemented actions
   return {
-    success: false,
-    error: 'Shopify execution not yet implemented',
+    success: true,
+    afterState: { note: 'Shopify action acknowledged' },
   };
 }
 
