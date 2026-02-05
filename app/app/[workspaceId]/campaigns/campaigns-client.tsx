@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Search, ArrowUpDown, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Search, ArrowUpDown, TrendingUp, TrendingDown, Minus, Calendar } from 'lucide-react';
 
 interface CampaignMetrics {
   spend: number;
@@ -31,9 +31,10 @@ interface CampaignsClientProps {
   workspaceId: string;
   metaCampaigns: Campaign[];
   googleCampaigns: Campaign[];
+  dateRange: { start: string; end: string };
 }
 
-type SortField = 'name' | 'status' | 'spend' | 'revenue' | 'roas' | 'cpa';
+type SortField = 'name' | 'status' | 'spend' | 'revenue' | 'roas' | 'cpa' | 'purchases';
 type SortDirection = 'asc' | 'desc';
 type StatusFilter = 'ALL' | 'ACTIVE' | 'PAUSED' | 'OTHER';
 
@@ -41,9 +42,9 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-ZA', {
     style: 'currency',
     currency: 'ZAR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value).replace('ZAR', 'R');
 };
 
 const formatNumber = (value: number) => {
@@ -53,22 +54,23 @@ const formatNumber = (value: number) => {
 const getStatusColor = (status: string) => {
   switch (status.toUpperCase()) {
     case 'ACTIVE':
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      return 'bg-green-500/20 text-green-400 border-green-500/30';
     case 'PAUSED':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
     default:
-      return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+      return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   }
 };
 
-const getRoasIndicator = (roas: number) => {
-  if (roas >= 3) return { icon: TrendingUp, color: 'text-green-600', label: 'Great' };
-  if (roas >= 2) return { icon: TrendingUp, color: 'text-blue-600', label: 'Good' };
-  if (roas >= 1) return { icon: Minus, color: 'text-yellow-600', label: 'Break-even' };
-  return { icon: TrendingDown, color: 'text-red-600', label: 'Loss' };
+const getRoasColor = (roas: number) => {
+  if (roas >= 3) return 'text-green-400';
+  if (roas >= 2) return 'text-blue-400';
+  if (roas >= 1) return 'text-yellow-400';
+  if (roas > 0) return 'text-red-400';
+  return 'text-muted-foreground';
 };
 
-export function CampaignsClient({ workspaceId, metaCampaigns, googleCampaigns }: CampaignsClientProps) {
+export function CampaignsClient({ workspaceId, metaCampaigns, googleCampaigns, dateRange }: CampaignsClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [sortField, setSortField] = useState<SortField>('spend');
@@ -86,10 +88,7 @@ export function CampaignsClient({ workspaceId, metaCampaigns, googleCampaigns }:
   const filterAndSortCampaigns = (campaigns: Campaign[]) => {
     return campaigns
       .filter((campaign) => {
-        // Search filter
         const matchesSearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase());
-        
-        // Status filter
         let matchesStatus = true;
         if (statusFilter === 'ACTIVE') {
           matchesStatus = campaign.status.toUpperCase() === 'ACTIVE';
@@ -98,7 +97,6 @@ export function CampaignsClient({ workspaceId, metaCampaigns, googleCampaigns }:
         } else if (statusFilter === 'OTHER') {
           matchesStatus = !['ACTIVE', 'PAUSED'].includes(campaign.status.toUpperCase());
         }
-        
         return matchesSearch && matchesStatus;
       })
       .sort((a, b) => {
@@ -106,33 +104,14 @@ export function CampaignsClient({ workspaceId, metaCampaigns, googleCampaigns }:
         let bValue: string | number;
         
         switch (sortField) {
-          case 'name':
-            aValue = a.name.toLowerCase();
-            bValue = b.name.toLowerCase();
-            break;
-          case 'status':
-            aValue = a.status;
-            bValue = b.status;
-            break;
-          case 'spend':
-            aValue = a.metrics.spend;
-            bValue = b.metrics.spend;
-            break;
-          case 'revenue':
-            aValue = a.metrics.revenue;
-            bValue = b.metrics.revenue;
-            break;
-          case 'roas':
-            aValue = a.metrics.roas;
-            bValue = b.metrics.roas;
-            break;
-          case 'cpa':
-            aValue = a.metrics.cpa;
-            bValue = b.metrics.cpa;
-            break;
-          default:
-            aValue = a.metrics.spend;
-            bValue = b.metrics.spend;
+          case 'name': aValue = a.name.toLowerCase(); bValue = b.name.toLowerCase(); break;
+          case 'status': aValue = a.status; bValue = b.status; break;
+          case 'spend': aValue = a.metrics.spend; bValue = b.metrics.spend; break;
+          case 'revenue': aValue = a.metrics.revenue; bValue = b.metrics.revenue; break;
+          case 'roas': aValue = a.metrics.roas; bValue = b.metrics.roas; break;
+          case 'cpa': aValue = a.metrics.cpa; bValue = b.metrics.cpa; break;
+          case 'purchases': aValue = a.metrics.purchases; bValue = b.metrics.purchases; break;
+          default: aValue = a.metrics.spend; bValue = b.metrics.spend;
         }
         
         if (typeof aValue === 'string') {
@@ -140,7 +119,6 @@ export function CampaignsClient({ workspaceId, metaCampaigns, googleCampaigns }:
             ? aValue.localeCompare(bValue as string)
             : (bValue as string).localeCompare(aValue);
         }
-        
         return sortDirection === 'asc' ? aValue - (bValue as number) : (bValue as number) - aValue;
       });
   };
@@ -167,70 +145,30 @@ export function CampaignsClient({ workspaceId, metaCampaigns, googleCampaigns }:
     };
   }, [filteredMetaCampaigns]);
 
-  const SortButton = ({ field, label }: { field: SortField; label: string }) => (
-    <Button
-      variant="ghost"
-      size="sm"
+  const SortHeader = ({ field, label, className = '' }: { field: SortField; label: string; className?: string }) => (
+    <button
       onClick={() => handleSort(field)}
-      className={`h-8 px-2 ${sortField === field ? 'text-primary' : ''}`}
+      className={`flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors ${className} ${sortField === field ? 'text-primary' : ''}`}
     >
       {label}
-      <ArrowUpDown className="ml-1 h-3 w-3" />
-    </Button>
+      <ArrowUpDown className="h-3 w-3" />
+    </button>
   );
-
-  const CampaignRow = ({ campaign }: { campaign: Campaign }) => {
-    const roasIndicator = getRoasIndicator(campaign.metrics.roas);
-    const RoasIcon = roasIndicator.icon;
-    
-    return (
-      <div className="flex items-center justify-between p-4 border-b last:border-b-0 hover:bg-muted/50 transition-colors">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium truncate">{campaign.name}</h3>
-            <Badge variant="secondary" className={getStatusColor(campaign.status)}>
-              {campaign.status}
-            </Badge>
-          </div>
-          {campaign.objective && (
-            <p className="text-xs text-muted-foreground mt-1">{campaign.objective}</p>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-6 text-sm">
-          <div className="text-right w-24">
-            <p className="text-muted-foreground text-xs">Spend</p>
-            <p className="font-medium">{formatCurrency(campaign.metrics.spend)}</p>
-          </div>
-          <div className="text-right w-24">
-            <p className="text-muted-foreground text-xs">Revenue</p>
-            <p className="font-medium">{formatCurrency(campaign.metrics.revenue)}</p>
-          </div>
-          <div className="text-right w-20">
-            <p className="text-muted-foreground text-xs">ROAS</p>
-            <div className={`font-medium flex items-center justify-end gap-1 ${roasIndicator.color}`}>
-              <RoasIcon className="h-3 w-3" />
-              {campaign.metrics.roas.toFixed(2)}x
-            </div>
-          </div>
-          <div className="text-right w-24">
-            <p className="text-muted-foreground text-xs">Purchases</p>
-            <p className="font-medium">{formatNumber(campaign.metrics.purchases)}</p>
-          </div>
-          <div className="text-right w-24">
-            <p className="text-muted-foreground text-xs">CPA</p>
-            <p className="font-medium">{campaign.metrics.cpa > 0 ? formatCurrency(campaign.metrics.cpa) : '-'}</p>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Campaigns</h1>
-        <p className="text-muted-foreground">Manage your advertising campaigns (Last 7 days metrics)</p>
+      {/* Header with Date Range */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Campaigns</h1>
+          <p className="text-muted-foreground">Manage your advertising campaigns</p>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg border">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">
+            {dateRange.start} – {dateRange.end}
+          </span>
+        </div>
       </div>
 
       {/* Filters */}
@@ -260,66 +198,76 @@ export function CampaignsClient({ workspaceId, metaCampaigns, googleCampaigns }:
 
       <Tabs defaultValue="meta" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="meta">
-            Meta ({filteredMetaCampaigns.length})
-          </TabsTrigger>
-          <TabsTrigger value="google">
-            Google ({filteredGoogleCampaigns.length})
-          </TabsTrigger>
+          <TabsTrigger value="meta">Meta ({filteredMetaCampaigns.length})</TabsTrigger>
+          <TabsTrigger value="google">Google ({filteredGoogleCampaigns.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="meta" className="space-y-4">
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-xs text-muted-foreground">Campaigns</p>
+            <Card className="bg-card/50">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground mb-1">Campaigns</p>
                 <p className="text-2xl font-bold">{metaTotals.totalCampaigns}</p>
-                <p className="text-xs text-green-600">{metaTotals.activeCampaigns} active</p>
+                <p className="text-xs text-green-400">{metaTotals.activeCampaigns} active</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-xs text-muted-foreground">Total Spend</p>
+            <Card className="bg-card/50">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground mb-1">Total Spend</p>
                 <p className="text-2xl font-bold">{formatCurrency(metaTotals.totalSpend)}</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-xs text-muted-foreground">Total Revenue</p>
+            <Card className="bg-card/50">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
                 <p className="text-2xl font-bold">{formatCurrency(metaTotals.totalRevenue)}</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-xs text-muted-foreground">Overall ROAS</p>
-                <p className="text-2xl font-bold">
+            <Card className="bg-card/50">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground mb-1">Overall ROAS</p>
+                <p className={`text-2xl font-bold ${getRoasColor(metaTotals.totalSpend > 0 ? metaTotals.totalRevenue / metaTotals.totalSpend : 0)}`}>
                   {metaTotals.totalSpend > 0 
                     ? (metaTotals.totalRevenue / metaTotals.totalSpend).toFixed(2) 
                     : '0.00'}x
                 </p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-xs text-muted-foreground">Purchases</p>
+            <Card className="bg-card/50">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground mb-1">Purchases</p>
                 <p className="text-2xl font-bold">{formatNumber(metaTotals.totalPurchases)}</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Campaign List */}
-          <Card>
-            <div className="border-b px-4 py-2 flex items-center justify-between bg-muted/50">
-              <SortButton field="name" label="Name" />
-              <div className="flex items-center gap-4">
-                <SortButton field="spend" label="Spend" />
-                <SortButton field="revenue" label="Revenue" />
-                <SortButton field="roas" label="ROAS" />
-                <SortButton field="cpa" label="CPA" />
+          {/* Campaign Table */}
+          <Card className="overflow-hidden">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-muted/30 border-b text-xs font-medium">
+              <div className="col-span-4">
+                <SortHeader field="name" label="Campaign" />
+              </div>
+              <div className="col-span-1 text-right">
+                <SortHeader field="spend" label="Spend" className="justify-end" />
+              </div>
+              <div className="col-span-2 text-right">
+                <SortHeader field="revenue" label="Revenue" className="justify-end" />
+              </div>
+              <div className="col-span-1 text-right">
+                <SortHeader field="roas" label="ROAS" className="justify-end" />
+              </div>
+              <div className="col-span-2 text-right">
+                <SortHeader field="purchases" label="Purchases" className="justify-end" />
+              </div>
+              <div className="col-span-2 text-right">
+                <SortHeader field="cpa" label="CPA" className="justify-end" />
               </div>
             </div>
-            <CardContent className="p-0">
+
+            {/* Table Body */}
+            <div className="divide-y divide-border/50">
               {filteredMetaCampaigns.length === 0 ? (
                 <div className="py-12 text-center">
                   <p className="text-muted-foreground">
@@ -329,13 +277,76 @@ export function CampaignsClient({ workspaceId, metaCampaigns, googleCampaigns }:
                   </p>
                 </div>
               ) : (
-                <div className="max-h-[600px] overflow-y-auto">
-                  {filteredMetaCampaigns.map((campaign) => (
-                    <CampaignRow key={campaign.id} campaign={campaign} />
-                  ))}
-                </div>
+                filteredMetaCampaigns.map((campaign) => (
+                  <div 
+                    key={campaign.id} 
+                    className="grid grid-cols-12 gap-2 px-4 py-3 hover:bg-muted/20 transition-colors items-center"
+                  >
+                    {/* Campaign Name & Status */}
+                    <div className="col-span-4 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{campaign.name}</span>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getStatusColor(campaign.status)}`}>
+                          {campaign.status}
+                        </Badge>
+                      </div>
+                      {campaign.objective && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{campaign.objective}</p>
+                      )}
+                    </div>
+                    
+                    {/* Spend */}
+                    <div className="col-span-1 text-right">
+                      <span className="font-medium text-sm">{formatCurrency(campaign.metrics.spend)}</span>
+                    </div>
+                    
+                    {/* Revenue */}
+                    <div className="col-span-2 text-right">
+                      <span className="font-medium text-sm">{formatCurrency(campaign.metrics.revenue)}</span>
+                    </div>
+                    
+                    {/* ROAS */}
+                    <div className="col-span-1 text-right">
+                      <span className={`font-medium text-sm ${getRoasColor(campaign.metrics.roas)}`}>
+                        {campaign.metrics.roas > 0 ? `${campaign.metrics.roas.toFixed(2)}x` : '-'}
+                      </span>
+                    </div>
+                    
+                    {/* Purchases */}
+                    <div className="col-span-2 text-right">
+                      <span className="font-medium text-sm">{formatNumber(campaign.metrics.purchases)}</span>
+                    </div>
+                    
+                    {/* CPA */}
+                    <div className="col-span-2 text-right">
+                      <span className="font-medium text-sm">
+                        {campaign.metrics.cpa > 0 ? formatCurrency(campaign.metrics.cpa) : '-'}
+                      </span>
+                    </div>
+                  </div>
+                ))
               )}
-            </CardContent>
+            </div>
+
+            {/* Table Footer - Totals */}
+            {filteredMetaCampaigns.length > 0 && (
+              <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-muted/30 border-t font-medium text-sm">
+                <div className="col-span-4">
+                  Total ({filteredMetaCampaigns.length} campaigns)
+                </div>
+                <div className="col-span-1 text-right">{formatCurrency(metaTotals.totalSpend)}</div>
+                <div className="col-span-2 text-right">{formatCurrency(metaTotals.totalRevenue)}</div>
+                <div className="col-span-1 text-right">
+                  <span className={getRoasColor(metaTotals.totalSpend > 0 ? metaTotals.totalRevenue / metaTotals.totalSpend : 0)}>
+                    {metaTotals.totalSpend > 0 ? (metaTotals.totalRevenue / metaTotals.totalSpend).toFixed(2) : '0.00'}x
+                  </span>
+                </div>
+                <div className="col-span-2 text-right">{formatNumber(metaTotals.totalPurchases)}</div>
+                <div className="col-span-2 text-right">
+                  {metaTotals.totalPurchases > 0 ? formatCurrency(metaTotals.totalSpend / metaTotals.totalPurchases) : '-'}
+                </div>
+              </div>
+            )}
           </Card>
         </TabsContent>
 

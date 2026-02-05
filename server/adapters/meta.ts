@@ -136,19 +136,20 @@ export async function syncMetaCampaigns(workspaceId: string, accountId: string) 
   const cleanAccountId = normalizeAccountId(accountId);
   
   try {
+    // Get ALL campaigns - don't filter by status so we capture paused/inactive ones too
     const data = await fetchMetaAPI(workspaceId, `act_${cleanAccountId}/campaigns`, {
-      fields: 'id,name,status,objective,daily_budget,lifetime_budget,created_time,updated_time',
+      fields: 'id,name,status,effective_status,objective,daily_budget,lifetime_budget,created_time,updated_time',
       limit: '500',
-      // Only get campaigns that aren't deleted
-      filtering: JSON.stringify([{ field: 'effective_status', operator: 'NOT_IN', value: ['DELETED'] }]),
-    }) as { data?: Array<{ id: string; name: string; status: string; objective?: string }> };
+    }) as { data?: Array<{ id: string; name: string; status: string; effective_status?: string; objective?: string }> };
 
     if (!data.data || data.data.length === 0) {
       console.log(`No campaigns found for account ${cleanAccountId}`);
       return;
     }
 
+    console.log(`Found ${data.data.length} campaigns for account ${cleanAccountId}:`);
     for (const campaign of data.data) {
+      console.log(`  - ${campaign.name} (${campaign.id}): status=${campaign.status}, effective=${campaign.effective_status}`);
       await prisma.metaCampaign.upsert({
         where: {
           workspaceId_campaignId: {

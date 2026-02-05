@@ -8,22 +8,38 @@ export default async function CampaignsPage({
 }) {
   const { workspaceId } = await params;
 
-  // Get campaigns with their insights aggregated
+  // Get campaigns
   const metaCampaigns = await prisma.metaCampaign.findMany({
     where: { workspaceId },
     orderBy: { name: 'asc' },
   });
 
-  // Get insights for the last 7 days for quick metrics
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  // Calculate date range (last 7 days)
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7);
 
+  // Format dates for display (like Meta: "Jan 29, 2026")
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
+
+  const dateRange = {
+    start: formatDate(startDate),
+    end: formatDate(endDate),
+  };
+
+  // Get insights for the last 7 days
   const insights = await prisma.metaInsightDaily.groupBy({
     by: ['entityId'],
     where: {
       workspaceId,
       level: 'CAMPAIGN',
-      date: { gte: sevenDaysAgo },
+      date: { gte: startDate },
     },
     _sum: {
       spend: true,
@@ -89,6 +105,7 @@ export default async function CampaignsPage({
         status: c.status,
         metrics: { spend: 0, impressions: 0, clicks: 0, purchases: 0, revenue: 0, roas: 0, cpa: 0 },
       }))}
+      dateRange={dateRange}
     />
   );
 }
