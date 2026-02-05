@@ -8,18 +8,26 @@ export default async function CampaignsPage({
 }) {
   const { workspaceId } = await params;
 
-  // Get campaigns
+  // Get all campaigns
   const metaCampaigns = await prisma.metaCampaign.findMany({
     where: { workspaceId },
     orderBy: { name: 'asc' },
   });
 
-  // Calculate date range (last 7 days)
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 7);
+  // Get the date range of synced data
+  const [minDate, maxDate] = await Promise.all([
+    prisma.metaInsightDaily.findFirst({
+      where: { workspaceId },
+      orderBy: { date: 'asc' },
+      select: { date: true },
+    }),
+    prisma.metaInsightDaily.findFirst({
+      where: { workspaceId },
+      orderBy: { date: 'desc' },
+      select: { date: true },
+    }),
+  ]);
 
-  // Format dates for display (like Meta: "Jan 29, 2026")
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
@@ -28,47 +36,81 @@ export default async function CampaignsPage({
     });
   };
 
-  const dateRange = {
-    start: formatDate(startDate),
-    end: formatDate(endDate),
+  const syncedDateRange = {
+    start: minDate?.date ? formatDate(minDate.date) : 'Not synced',
+    end: maxDate?.date ? formatDate(maxDate.date) : 'Not synced',
   };
 
-  // Get insights for the last 7 days
-  const insights = await prisma.metaInsightDaily.groupBy({
-    by: ['entityId'],
+  // Get ALL daily insights for the workspace (we'll filter client-side for date range)
+  const insights = await prisma.metaInsightDaily.findMany({
     where: {
       workspaceId,
       level: 'CAMPAIGN',
-      date: { gte: startDate },
     },
-    _sum: {
+    select: {
+      date: true,
+      entityId: true,
       spend: true,
       impressions: true,
       clicks: true,
       purchases: true,
       purchaseValue: true,
     },
+    orderBy: { date: 'desc' },
   });
 
-  // Create a map of campaign metrics
-  const metricsMap = new Map(
-    insights.map((i) => [
-      i.entityId,
-      {
-        spend: i._sum.spend || 0,
-        impressions: i._sum.impressions || 0,
-        clicks: i._sum.clicks || 0,
-        purchases: i._sum.purchases || 0,
-        revenue: i._sum.purchaseValue || 0,
-        roas: i._sum.spend && i._sum.spend > 0 
-          ? (i._sum.purchaseValue || 0) / i._sum.spend 
-          : 0,
-        cpa: i._sum.purchases && i._sum.purchases > 0 
-          ? (i._sum.spend || 0) / i._sum.purchases 
-          : 0,
-      },
-    ])
-  );
+  // Transform insights to the format expected by the client
+  const dailyInsights = insights.map(i => ({
+    date: i.date.toISOString(),
+    campaignId: i.entityId,
+    spend: i.spend || 0,
+    impressions: i.impressions || 0,
+    clicks: i.clicks || 0,
+    purchases: i.purchases || 0,
+    revenue: i.purchaseValue || 0,
+  }));
+
+  // Calculate default metrics (last 7 days) for initial render
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7);
+
+  const last7DaysInsights = dailyInsights.filter(i => {
+    const d = new Date(i.date);
+    return d >= startDate && d <= endDate;
+  });
+
+  // Aggregate by campaign for default view
+  const metricsMap = new Map<string, {
+    spend: number;
+    impressions: number;
+    clicks: number;
+    purchases: number;
+    revenue: number;
+    roas: number;
+    cpa: number;
+  }>();
+
+  for (const insight of last7DaysInsights) {
+    const existing = metricsMap.get(insight.campaignId) || {
+      spend: 0, impressions: 0, clicks: 0, purchases: 0, revenue: 0, roas: 0, cpa: 0
+    };
+    
+    existing.spend += insight.spend;
+    existing.impressions += insight.impressions;
+    existing.clicks += insight.clicks;
+    existing.purchases += insight.purchases;
+    existing.revenue += insight.revenue;
+    
+    metricsMap.set(insight.campaignId, existing);
+  }
+
+  // Calculate ROAS and CPA
+  for (const [id, metrics] of metricsMap) {
+    metrics.roas = metrics.spend > 0 ? metrics.revenue / metrics.spend : 0;
+    metrics.cpa = metrics.purchases > 0 ? metrics.spend / metrics.purchases : 0;
+    metricsMap.set(id, metrics);
+  }
 
   // Combine campaigns with their metrics
   const campaignsWithMetrics = metaCampaigns.map((campaign) => ({
@@ -105,7 +147,8 @@ export default async function CampaignsPage({
         status: c.status,
         metrics: { spend: 0, impressions: 0, clicks: 0, purchases: 0, revenue: 0, roas: 0, cpa: 0 },
       }))}
-      dateRange={dateRange}
+      dailyInsights={dailyInsights}
+      syncedDateRange={syncedDateRange}
     />
   );
 }
