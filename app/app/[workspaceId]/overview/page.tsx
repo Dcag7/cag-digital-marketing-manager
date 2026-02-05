@@ -2,18 +2,7 @@ import { calculateWorkspaceMetrics } from '@/lib/metrics/calculator';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
+import { ChannelBarChart } from './charts';
 
 export default async function OverviewPage({
   params,
@@ -141,17 +130,7 @@ export default async function OverviewPage({
               </div>
             </TabsContent>
             <TabsContent value="chart" className="mt-4">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={channelData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="channel" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="spend" fill="#8884d8" name="Spend" />
-                  <Bar dataKey="revenue" fill="#82ca9d" name="Revenue" />
-                </BarChart>
-              </ResponsiveContainer>
+              <ChannelBarChart data={channelData} />
             </TabsContent>
           </Tabs>
         </CardContent>
