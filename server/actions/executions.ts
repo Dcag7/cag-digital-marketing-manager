@@ -82,7 +82,7 @@ export async function runExecution(
           proposedActionId: action.id,
           channel: action.channel,
           type: action.type,
-          entity: action.entity,
+          entity: entity,
           beforeState: beforeState as object,
           afterState: result.afterState as object,
           status: result.success ? 'EXECUTED' : 'FAILED',
