@@ -250,29 +250,31 @@ export async function syncMetaInsights(
         const actions = (insight.actions as Array<{ action_type: string; value: string }>) || [];
         const actionValues = (insight.action_values as Array<{ action_type: string; value: string }>) || [];
         
-        // Look for various purchase action types Meta uses
-        const purchaseActionTypes = [
-          'purchase',
-          'omni_purchase', 
-          'offsite_conversion.fb_pixel_purchase',
-          'onsite_conversion.purchase',
-          'app_custom_event.fb_mobile_purchase'
-        ];
-        
+        // Look for purchase action - use only ONE type to avoid double counting
+        // Priority: offsite_conversion.fb_pixel_purchase > purchase > omni_purchase
         let purchases = 0;
         let purchaseValue = 0;
         
-        for (const actionType of purchaseActionTypes) {
-          const purchaseAction = actions.find(a => a.action_type === actionType);
-          const valueAction = actionValues.find(a => a.action_type === actionType);
-          
-          if (purchaseAction) {
-            purchases += parseInt(purchaseAction.value) || 0;
-          }
-          if (valueAction) {
-            purchaseValue += parseFloat(valueAction.value) || 0;
-          }
+        // Find the best purchase action (most specific first)
+        const purchaseAction = 
+          actions.find(a => a.action_type === 'offsite_conversion.fb_pixel_purchase') ||
+          actions.find(a => a.action_type === 'purchase') ||
+          actions.find(a => a.action_type === 'omni_purchase');
+        
+        const valueAction = 
+          actionValues.find(a => a.action_type === 'offsite_conversion.fb_pixel_purchase') ||
+          actionValues.find(a => a.action_type === 'purchase') ||
+          actionValues.find(a => a.action_type === 'omni_purchase');
+        
+        if (purchaseAction) {
+          purchases = parseInt(purchaseAction.value) || 0;
         }
+        if (valueAction) {
+          purchaseValue = parseFloat(valueAction.value) || 0;
+        }
+        
+        // Debug logging
+        console.log(`Campaign ${campaignId} (${insight.date_start}): spend=${spend}, purchases=${purchases}, revenue=${purchaseValue}`);
         
         const spend = parseFloat(insight.spend as string) || 0;
         const purchaseRoas = spend > 0 && purchaseValue > 0 ? purchaseValue / spend : null;
