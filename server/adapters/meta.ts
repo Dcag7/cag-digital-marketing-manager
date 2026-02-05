@@ -2,9 +2,22 @@ import 'server-only';
 import { decryptJson } from '@/lib/encryption';
 import { prisma } from '@/lib/db';
 
+// Use latest stable API version
+const META_API_VERSION = 'v21.0';
+
 interface MetaTokenData {
   accessToken: string;
   adAccountId: string;
+}
+
+interface MetaAPIError {
+  error: {
+    message: string;
+    type: string;
+    code: number;
+    error_subcode?: number;
+    fbtrace_id?: string;
+  };
 }
 
 export async function getMetaAccessToken(workspaceId: string): Promise<string> {
@@ -18,10 +31,15 @@ export async function getMetaAccessToken(workspaceId: string): Promise<string> {
   });
 
   if (!secret) {
-    throw new Error('Meta integration not connected');
+    throw new Error('Meta integration not connected. Please reconnect in Settings.');
   }
 
   const tokenData = decryptJson<MetaTokenData>(secret.encryptedJson);
+  
+  if (!tokenData.accessToken) {
+    throw new Error('Invalid Meta credentials. Please reconnect in Settings.');
+  }
+  
   return tokenData.accessToken;
 }
 
@@ -31,14 +49,8 @@ export async function fetchMetaAPI(
   params?: Record<string, string>
 ): Promise<unknown> {
   const token = await getMetaAccessToken(workspaceId);
-  const appId = process.env.META_APP_ID;
-  const appSecret = process.env.META_APP_SECRET;
 
-  if (!appId || !appSecret) {
-    throw new Error('Meta app credentials not configured');
-  }
-
-  const url = new URL(`https://graph.facebook.com/v21.0/${endpoint}`);
+  const url = new URL(`https://graph.facebook.com/${META_API_VERSION}/${endpoint}`);
   url.searchParams.set('access_token', token);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -47,74 +59,123 @@ export async function fetchMetaAPI(
   }
 
   const response = await fetch(url.toString());
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Meta API error: ${response.status} ${error}`);
+  const data = await response.json();
+  
+  if (!response.ok || data.error) {
+    const errorData = data as MetaAPIError;
+    const errorMessage = errorData.error?.message || 'Unknown Meta API error';
+    const errorCode = errorData.error?.code || response.status;
+    
+    // Handle specific error codes
+    if (errorCode === 190) {
+      throw new Error('Meta access token is invalid or expired. Please reconnect in Settings.');
+    }
+    if (errorCode === 17 || errorCode === 4) {
+      throw new Error('Meta API rate limit reached. Please try again in a few minutes.');
+    }
+    if (errorCode === 100) {
+      throw new Error(`Meta API field error: ${errorMessage}`);
+    }
+    
+    throw new Error(`Meta API error (${errorCode}): ${errorMessage}`);
   }
 
-  return response.json();
+  return data;
+}
+
+// Helper to normalize account ID (remove act_ prefix if present)
+function normalizeAccountId(accountId: string): string {
+  return accountId.replace(/^act_/, '');
 }
 
 export async function syncMetaAdAccounts(workspaceId: string) {
-  const data = await fetchMetaAPI(workspaceId, 'me/adaccounts', {
-    fields: 'id,name,account_id,currency,timezone',
-  }) as { data: Array<{ id: string; name: string; account_id: string; currency: string; timezone: string }> };
+  try {
+    const data = await fetchMetaAPI(workspaceId, 'me/adaccounts', {
+      fields: 'id,name,account_id,currency,timezone_name',
+      limit: '100',
+    }) as { data?: Array<{ id: string; name: string; account_id: string; currency: string; timezone_name: string }> };
 
-  for (const account of data.data) {
-    await prisma.metaAdAccount.upsert({
-      where: {
-        workspaceId_accountId: {
+    if (!data.data || data.data.length === 0) {
+      console.log(`No ad accounts found for workspace ${workspaceId}`);
+      return;
+    }
+
+    for (const account of data.data) {
+      await prisma.metaAdAccount.upsert({
+        where: {
+          workspaceId_accountId: {
+            workspaceId,
+            accountId: account.account_id,
+          },
+        },
+        create: {
+          id: `${workspaceId}_${account.account_id}`,
           workspaceId,
           accountId: account.account_id,
+          name: account.name || `Account ${account.account_id}`,
+          currency: account.currency || 'USD',
+          timezone: account.timezone_name || 'UTC',
         },
-      },
-      create: {
-        id: `${workspaceId}_${account.account_id}`,
-        workspaceId,
-        accountId: account.account_id,
-        name: account.name,
-        currency: account.currency,
-        timezone: account.timezone,
-      },
-      update: {
-        name: account.name,
-        currency: account.currency,
-        timezone: account.timezone,
-      },
-    });
+        update: {
+          name: account.name || `Account ${account.account_id}`,
+          currency: account.currency || 'USD',
+          timezone: account.timezone_name || 'UTC',
+        },
+      });
+    }
+    
+    console.log(`Synced ${data.data.length} ad accounts for workspace ${workspaceId}`);
+  } catch (error) {
+    console.error(`Failed to sync ad accounts for workspace ${workspaceId}:`, error);
+    throw error;
   }
 }
 
 export async function syncMetaCampaigns(workspaceId: string, accountId: string) {
-  // Ensure we don't double-prefix with act_
-  const cleanAccountId = accountId.replace(/^act_/, '');
-  const data = await fetchMetaAPI(workspaceId, `act_${cleanAccountId}/campaigns`, {
-    fields: 'id,name,status,objective',
-  }) as { data: Array<{ id: string; name: string; status: string; objective?: string }> };
+  const cleanAccountId = normalizeAccountId(accountId);
+  
+  try {
+    const data = await fetchMetaAPI(workspaceId, `act_${cleanAccountId}/campaigns`, {
+      fields: 'id,name,status,objective,daily_budget,lifetime_budget,created_time,updated_time',
+      limit: '500',
+      // Only get campaigns that aren't deleted
+      filtering: JSON.stringify([{ field: 'effective_status', operator: 'NOT_IN', value: ['DELETED'] }]),
+    }) as { data?: Array<{ id: string; name: string; status: string; objective?: string }> };
 
-  for (const campaign of data.data) {
-    await prisma.metaCampaign.upsert({
-      where: {
-        workspaceId_campaignId: {
-          workspaceId,
-          campaignId: campaign.id,
+    if (!data.data || data.data.length === 0) {
+      console.log(`No campaigns found for account ${cleanAccountId}`);
+      return;
+    }
+
+    for (const campaign of data.data) {
+      await prisma.metaCampaign.upsert({
+        where: {
+          workspaceId_campaignId: {
+            workspaceId,
+            campaignId: campaign.id,
+          },
         },
-      },
-      create: {
-        id: `${workspaceId}_${campaign.id}`,
-        workspaceId,
-        accountId,
-        campaignId: campaign.id,
-        name: campaign.name,
-        status: campaign.status,
-        objective: campaign.objective || null,
-      },
-      update: {
-        name: campaign.name,
-        status: campaign.status,
-        objective: campaign.objective || null,
-      },
-    });
+        create: {
+          id: `${workspaceId}_${campaign.id}`,
+          workspaceId,
+          accountId: accountId, // Keep original format for consistency
+          campaignId: campaign.id,
+          name: campaign.name || `Campaign ${campaign.id}`,
+          status: campaign.status || 'UNKNOWN',
+          objective: campaign.objective || null,
+        },
+        update: {
+          name: campaign.name || `Campaign ${campaign.id}`,
+          status: campaign.status || 'UNKNOWN',
+          objective: campaign.objective || null,
+        },
+      });
+    }
+    
+    console.log(`Synced ${data.data.length} campaigns for account ${cleanAccountId}`);
+  } catch (error) {
+    console.error(`Failed to sync campaigns for account ${cleanAccountId}:`, error);
+    throw error;
   }
 }
 
@@ -130,9 +191,22 @@ export async function syncMetaInsights(
     where: { workspaceId },
   });
 
+  if (accounts.length === 0) {
+    // Try to sync ad accounts first
+    await syncMetaAdAccounts(workspaceId);
+    const newAccounts = await prisma.metaAdAccount.findMany({
+      where: { workspaceId },
+    });
+    
+    if (newAccounts.length === 0) {
+      throw new Error('No ad accounts found. Make sure your token has access to at least one ad account.');
+    }
+    
+    accounts.push(...newAccounts);
+  }
+
   for (const account of accounts) {
-    // Ensure we don't double-prefix with act_
-    const cleanAccountId = account.accountId.replace(/^act_/, '');
+    const cleanAccountId = normalizeAccountId(account.accountId);
     
     // Sync campaigns first
     await syncMetaCampaigns(workspaceId, account.accountId);
@@ -141,33 +215,49 @@ export async function syncMetaInsights(
       where: { workspaceId, accountId: account.accountId },
     });
 
-    for (const campaign of campaigns) {
-      // Fetch insights for campaign
+    if (campaigns.length === 0) {
+      console.log(`No campaigns to sync insights for in account ${cleanAccountId}`);
+      continue;
+    }
+
+    // Fetch insights at account level with campaign breakdown (more efficient)
+    try {
       const insights = await fetchMetaAPI(workspaceId, `act_${cleanAccountId}/insights`, {
         level: 'campaign',
         time_range: JSON.stringify({
           since: startDate.toISOString().split('T')[0],
           until: endDate.toISOString().split('T')[0],
         }),
-        fields: 'spend,impressions,clicks,ctr,cpc,cpm,frequency,actions,action_values,cost_per_action_type',
+        // Use only well-supported fields
+        fields: 'campaign_id,campaign_name,spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions,action_values',
         time_increment: '1',
-        filtering: JSON.stringify([{ field: 'campaign.id', operator: 'EQUAL', value: campaign.campaignId }]),
-      }) as { data: Array<Record<string, unknown>> };
+        limit: '1000',
+      }) as { data?: Array<Record<string, unknown>> };
+
+      if (!insights.data || insights.data.length === 0) {
+        console.log(`No insights data for account ${cleanAccountId} in the last ${days} days`);
+        continue;
+      }
 
       for (const insight of insights.data) {
+        // Skip if no campaign_id (shouldn't happen but just in case)
+        if (!insight.campaign_id) continue;
+        
         const date = new Date(insight.date_start as string);
         
-        // Extract purchase data from actions array
+        // Extract purchase data from actions array (handles various action types)
         const actions = (insight.actions as Array<{ action_type: string; value: string }>) || [];
         const actionValues = (insight.action_values as Array<{ action_type: string; value: string }>) || [];
         
-        const purchaseAction = actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-        const purchaseValueAction = actionValues.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+        // Look for various purchase action types
+        const purchaseActionTypes = ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'];
+        const purchaseAction = actions.find(a => purchaseActionTypes.includes(a.action_type));
+        const purchaseValueAction = actionValues.find(a => purchaseActionTypes.includes(a.action_type));
         
         const purchases = purchaseAction ? parseInt(purchaseAction.value) || 0 : 0;
         const purchaseValue = purchaseValueAction ? parseFloat(purchaseValueAction.value) || 0 : 0;
         const spend = parseFloat(insight.spend as string) || 0;
-        const purchaseRoas = spend > 0 ? purchaseValue / spend : null;
+        const purchaseRoas = spend > 0 && purchaseValue > 0 ? purchaseValue / spend : null;
         
         await prisma.metaInsightDaily.upsert({
           where: {
@@ -175,14 +265,14 @@ export async function syncMetaInsights(
               workspaceId,
               date,
               level: 'CAMPAIGN',
-              entityId: campaign.campaignId,
+              entityId: insight.campaign_id as string,
             },
           },
           create: {
             workspaceId,
             date,
             level: 'CAMPAIGN',
-            entityId: campaign.campaignId,
+            entityId: insight.campaign_id as string,
             spend,
             impressions: parseInt(insight.impressions as string) || 0,
             clicks: parseInt(insight.clicks as string) || 0,
@@ -208,6 +298,34 @@ export async function syncMetaInsights(
           },
         });
       }
+      
+      console.log(`Synced ${insights.data.length} insight records for account ${cleanAccountId}`);
+    } catch (error) {
+      console.error(`Failed to sync insights for account ${cleanAccountId}:`, error);
+      // Continue with other accounts even if one fails
     }
+  }
+}
+
+// Utility function to test the connection
+export async function testMetaConnection(workspaceId: string): Promise<{ success: boolean; message: string; accountName?: string }> {
+  try {
+    const token = await getMetaAccessToken(workspaceId);
+    
+    // Test with a simple API call
+    const data = await fetchMetaAPI(workspaceId, 'me', {
+      fields: 'id,name',
+    }) as { id: string; name: string };
+    
+    return {
+      success: true,
+      message: 'Connection successful',
+      accountName: data.name,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Connection failed',
+    };
   }
 }
