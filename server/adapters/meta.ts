@@ -3,9 +3,8 @@ import { decryptJson } from '@/lib/encryption';
 import { prisma } from '@/lib/db';
 
 interface MetaTokenData {
-  access_token: string;
-  token_type?: string;
-  expires_in?: number;
+  accessToken: string;
+  adAccountId: string;
 }
 
 export async function getMetaAccessToken(workspaceId: string): Promise<string> {
@@ -23,7 +22,7 @@ export async function getMetaAccessToken(workspaceId: string): Promise<string> {
   }
 
   const tokenData = decryptJson<MetaTokenData>(secret.encryptedJson);
-  return tokenData.access_token;
+  return tokenData.accessToken;
 }
 
 export async function fetchMetaAPI(
