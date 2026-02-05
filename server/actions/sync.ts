@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { syncMetaInsights, syncMetaAdAccounts } from '@/server/adapters/meta';
+import { syncAllShopifyData } from '@/server/adapters/shopify';
 import { revalidatePath } from 'next/cache';
 
 export type SyncResult = {
@@ -76,7 +77,7 @@ export async function syncMetaData(workspaceId: string, days: number = 90, clear
   }
 }
 
-export async function syncShopifyData(workspaceId: string): Promise<SyncResult> {
+export async function syncShopifyData(workspaceId: string, days: number = 90, clearFirst: boolean = true): Promise<SyncResult> {
   try {
     // Check if integration is connected
     const integration = await prisma.integration.findFirst({
@@ -95,11 +96,47 @@ export async function syncShopifyData(workspaceId: string): Promise<SyncResult> 
       };
     }
 
-    // Shopify sync not yet implemented
+    // Clear old data if requested
+    if (clearFirst) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      
+      await prisma.shopifyOrder.deleteMany({
+        where: {
+          workspaceId,
+          createdAt: { gte: cutoffDate },
+        },
+      });
+      
+      await prisma.shopifyEmailMetrics.deleteMany({
+        where: {
+          workspaceId,
+          date: { gte: cutoffDate },
+        },
+      });
+      
+      console.log(`Cleared existing Shopify data for last ${days} days`);
+    }
+
+    // Sync all Shopify data
+    await syncAllShopifyData(workspaceId, days);
+
+    // Get counts for feedback
+    const [orderCount, productCount, emailCampaignCount] = await Promise.all([
+      prisma.shopifyOrder.count({ where: { workspaceId } }),
+      prisma.shopifyProduct.count({ where: { workspaceId } }),
+      prisma.shopifyEmailCampaign.count({ where: { workspaceId } }),
+    ]);
+
+    revalidatePath(`/app/${workspaceId}`);
+    revalidatePath(`/app/${workspaceId}/campaigns`);
+    revalidatePath(`/app/${workspaceId}/overview`);
+    revalidatePath(`/app/${workspaceId}/settings`);
+
     return {
-      success: false,
-      message: 'Shopify sync coming soon',
-      error: 'Shopify data sync is not yet implemented',
+      success: true,
+      message: 'Shopify data synced successfully',
+      details: `Synced ${orderCount} orders, ${productCount} products, ${emailCampaignCount} email campaigns (last ${days} days)`,
     };
   } catch (error) {
     console.error('Shopify sync error:', error);

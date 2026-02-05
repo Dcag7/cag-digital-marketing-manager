@@ -11,7 +11,10 @@ import {
   FileText,
   Settings,
   ArrowLeftRight,
-  ChevronDown
+  ChevronDown,
+  GraduationCap,
+  Mail,
+  Bot
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserButton } from '@clerk/nextjs';
@@ -42,10 +45,13 @@ export default async function WorkspaceLayout({
 
   const navItems = [
     { href: `/app/${workspaceId}/overview`, label: 'Overview', icon: LayoutDashboard, color: 'text-blue-500' },
+    { href: `/app/${workspaceId}/ai-manager`, label: 'AI Manager', icon: Bot, color: 'text-violet-500' },
     { href: `/app/${workspaceId}/campaigns`, label: 'Campaigns', icon: Megaphone, color: 'text-green-500' },
+    { href: `/app/${workspaceId}/email`, label: 'Email', icon: Mail, color: 'text-pink-500' },
     { href: `/app/${workspaceId}/creative`, label: 'Creative', icon: Sparkles, color: 'text-yellow-500' },
     { href: `/app/${workspaceId}/recommendations`, label: 'Recommendations', icon: Lightbulb, color: 'text-purple-500' },
     { href: `/app/${workspaceId}/tasks`, label: 'Tasks', icon: CheckSquare, color: 'text-orange-500' },
+    { href: `/app/${workspaceId}/academy`, label: 'Academy', icon: GraduationCap, color: 'text-indigo-500' },
     { href: `/app/${workspaceId}/audit`, label: 'Audit Log', icon: FileText, color: 'text-slate-500' },
     { href: `/app/${workspaceId}/settings`, label: 'Settings', icon: Settings, color: 'text-slate-500' },
   ];

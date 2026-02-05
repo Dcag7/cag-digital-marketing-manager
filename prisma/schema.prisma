@@ -277,6 +277,7 @@ model ShopifyShop {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   orders      ShopifyOrder[]
   products    ShopifyProduct[]
+  emailCampaigns ShopifyEmailCampaign[]
 
   @@unique([workspaceId, shopDomain])
   @@index([workspaceId])
@@ -351,6 +352,61 @@ model ShopifyVariant {
 
   @@unique([workspaceId, variantId])
   @@index([workspaceId, productId])
+}
+
+model ShopifyEmailCampaign {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  shopDomain      String
+  campaignId      String   // Shopify marketing activity ID
+  name            String
+  type            EmailCampaignType
+  status          String   // draft, scheduled, sent, archived
+  subject         String?
+  previewText     String?
+  sentAt          DateTime?
+  scheduledAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  shop            ShopifyShop @relation(fields: [workspaceId, shopDomain], references: [workspaceId, shopDomain], onDelete: Cascade)
+  metrics         ShopifyEmailMetrics[]
+
+  @@unique([workspaceId, campaignId])
+  @@index([workspaceId, sentAt])
+  @@index([workspaceId, type])
+}
+
+enum EmailCampaignType {
+  NEWSLETTER
+  PROMOTIONAL
+  ABANDONED_CART
+  WELCOME_SERIES
+  WIN_BACK
+  POST_PURCHASE
+  CUSTOM
+}
+
+model ShopifyEmailMetrics {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  campaignId      String
+  date            DateTime @db.Date
+  sent            Int      @default(0)
+  delivered       Int      @default(0)
+  opened          Int      @default(0)
+  clicked         Int      @default(0)
+  bounced         Int      @default(0)
+  unsubscribed    Int      @default(0)
+  spamReports     Int      @default(0)
+  conversions     Int      @default(0)
+  revenue         Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  campaign        ShopifyEmailCampaign @relation(fields: [workspaceId, campaignId], references: [workspaceId, campaignId], onDelete: Cascade)
+
+  @@unique([workspaceId, campaignId, date])
+  @@index([workspaceId, date])
 }
 
 // ============================================================
